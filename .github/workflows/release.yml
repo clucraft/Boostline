@@ -1,0 +1,77 @@
+name: Release
+
+# Tag pushes (v*) build, launch-check and publish Windows + macOS installers.
+# Run it manually (workflow_dispatch) to build and launch-check without publishing.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            dist: dist
+            app: release/win-unpacked/Boostline.exe
+            artifacts: release/*.exe
+          - os: macos-latest
+            dist: dist:mac
+            app: release/mac-universal/Boostline.app/Contents/MacOS/Boostline
+            artifacts: release/*.dmg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run ${{ matrix.dist }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Check the macOS ad-hoc signature
+        if: runner.os == 'macOS'
+        run: |
+          codesign --verify --deep --strict --verbose=2 release/mac-universal/Boostline.app
+          codesign -dv release/mac-universal/Boostline.app 2>&1 | grep -E 'Identifier|Format|Signature'
+          lipo -archs release/mac-universal/Boostline.app/Contents/MacOS/Boostline
+      - name: Launch check of the packaged app
+        shell: bash
+        run: |
+          BOOSTLINE_SMOKE_TEST="$RUNNER_TEMP/smoke.json" "${{ matrix.app }}" || true
+          cat "$RUNNER_TEMP/smoke.json"
+          grep -q '"ok":true' "$RUNNER_TEMP/smoke.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: boostline-${{ runner.os }}
+          path: ${{ matrix.artifacts }}
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la dist
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Boostline $GITHUB_REF_NAME" \
+            --notes "**Windows:** \`Boostline.Setup.*.exe\` (installer) or \`Boostline.*.exe\` (portable, no install).
+          **macOS** (Apple Silicon and Intel): \`Boostline-*-mac-universal.dmg\`. The Mac build isn't signed by Apple, so the first launch needs *Open Anyway*; see [Installing on macOS](https://github.com/${GITHUB_REPOSITORY}#installing-on-macos).
+
+          See [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/CHANGELOG.md) for what's new."
