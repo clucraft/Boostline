@@ -312,8 +312,10 @@ public class BoostlineDataPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerD
                     guard status == COMPRESSION_STATUS_OK else {
                         throw ImportError.message("The download is not valid gzip data")
                     }
-                    // This chunk is done when its input is used up and the output buffer wasn't filled.
-                    if stream.pointee.src_size == 0 && produced < bufferSize { return }
+                    // Before the last chunk: move on once this chunk's input is used up and the output
+                    // buffer wasn't filled. On the last chunk keep going: the decoder releases its final
+                    // output only on further calls, until it reports the end.
+                    if processFlags == 0 && stream.pointee.src_size == 0 && produced < bufferSize { return }
                     // No progress at all: stop rather than spin (the size check below decides).
                     if produced == 0 && stream.pointee.src_size == inputBefore { return }
                 }
