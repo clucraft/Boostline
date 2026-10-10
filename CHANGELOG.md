@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-09
+
 ### Fixed
 
 - Heatmap rows were stretched to about 46 px instead of 30 px, so a full map didn't fit on screen without scrolling.
@@ -87,5 +89,6 @@ First public release.
 - Safety: the UDS client has a hard allowlist of read-only services (session control, read data/memory, dynamic DID definition, tester present, read DTCs). Nothing that writes, codes or flashes can be sent.
 - Settings for units (bar/psi/kPa, °C/°F, km/h/mph, Nm/lb-ft, hp/PS/kW, kg/h/g/s/lb/min, λ/AFR), Log Viewer behavior, data folder, and auto-recording of WOT pulls.
 
-[Unreleased]: https://github.com/clucraft/Boostline/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/clucraft/Boostline/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/clucraft/Boostline/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/clucraft/Boostline/releases/tag/v0.4.0
