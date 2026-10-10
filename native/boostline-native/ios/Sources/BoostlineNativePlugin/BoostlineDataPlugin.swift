@@ -237,22 +237,28 @@ public class BoostlineDataPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerD
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
-    /// Streams a gzip file through Apple's raw DEFLATE decoder (the gzip header is skipped here).
+    /// Unpacks a gzip file (one member) with Apple's raw DEFLATE decoder: the header is parsed
+    /// here, only the compressed bytes are fed to the decoder (not the 8-byte trailer), and the
+    /// result is checked against the size recorded in the trailer.
     private static func gunzip(_ source: URL, to destination: URL) throws {
         let input = try FileHandle(forReadingFrom: source)
         defer { try? input.close() }
-        FileManager.default.createFile(atPath: destination.path, contents: nil)
-        let output = try FileHandle(forWritingTo: destination)
-        defer { try? output.close() }
+        let fileSize = try Int(input.seekToEnd())
+        guard fileSize > 18 else { throw ImportError.message("Not a gzip file") }
+        try input.seek(toOffset: UInt64(fileSize - 4))
+        let isizeBytes = [UInt8](input.readData(ofLength: 4))
+        guard isizeBytes.count == 4 else { throw ImportError.message("Truncated gzip file") }
+        let expectedSize = UInt32(isizeBytes[0]) | UInt32(isizeBytes[1]) << 8 | UInt32(isizeBytes[2]) << 16 | UInt32(isizeBytes[3]) << 24
+        try input.seek(toOffset: 0)
 
-        // Gzip header (RFC 1952): magic, method 8 (deflate), flags, mtime, xfl, os, optional fields.
-        let header = input.readData(ofLength: 10)
+        // Header (RFC 1952): magic, method 8 (deflate), flags, mtime, xfl, os, optional fields.
+        let header = [UInt8](input.readData(ofLength: 10))
         guard header.count == 10, header[0] == 0x1f, header[1] == 0x8b, header[2] == 8 else {
             throw ImportError.message("Not a gzip file")
         }
         let flags = header[3]
         if flags & 0x04 != 0 {
-            let lengthBytes = input.readData(ofLength: 2)
+            let lengthBytes = [UInt8](input.readData(ofLength: 2))
             guard lengthBytes.count == 2 else { throw ImportError.message("Truncated gzip header") }
             _ = input.readData(ofLength: Int(lengthBytes[0]) | Int(lengthBytes[1]) << 8)
         }
@@ -260,41 +266,61 @@ public class BoostlineDataPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerD
             while let byte = input.readData(ofLength: 1).first, byte != 0 {}
         }
         if flags & 0x02 != 0 { _ = input.readData(ofLength: 2) }
+        let headerEnd = try Int(input.offset())
+        var remaining = fileSize - 8 - headerEnd
+        guard remaining > 0 else { throw ImportError.message("Truncated gzip file") }
+
+        FileManager.default.createFile(atPath: destination.path, contents: nil)
+        let output = try FileHandle(forWritingTo: destination)
+        defer { try? output.close() }
 
         let bufferSize = 1 << 20
         let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
         defer { destinationBuffer.deallocate() }
-        let streamPointer = UnsafeMutablePointer<compression_stream>.allocate(capacity: 1)
-        defer { streamPointer.deallocate() }
-        guard compression_stream_init(streamPointer, COMPRESSION_STREAM_DECODE, COMPRESSION_ZLIB) == COMPRESSION_STATUS_OK else {
+        let stream = UnsafeMutablePointer<compression_stream>.allocate(capacity: 1)
+        defer { stream.deallocate() }
+        guard compression_stream_init(stream, COMPRESSION_STREAM_DECODE, COMPRESSION_ZLIB) == COMPRESSION_STATUS_OK else {
             throw ImportError.message("Cannot start the decompressor")
         }
-        defer { compression_stream_destroy(streamPointer) }
+        defer { compression_stream_destroy(stream) }
 
-        var finished = false
-        while !finished {
-            let chunk = input.readData(ofLength: bufferSize)
-            let last = chunk.isEmpty
-            try chunk.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
-                streamPointer.pointee.src_ptr = raw.bindMemory(to: UInt8.self).baseAddress ?? UnsafePointer(destinationBuffer)
-                streamPointer.pointee.src_size = chunk.count
-                repeat {
-                    streamPointer.pointee.dst_ptr = destinationBuffer
-                    streamPointer.pointee.dst_size = bufferSize
-                    let status = compression_stream_process(streamPointer, last ? Int32(COMPRESSION_STREAM_FINALIZE.rawValue) : 0)
-                    let produced = bufferSize - streamPointer.pointee.dst_size
-                    if produced > 0 { output.write(Data(bytes: destinationBuffer, count: produced)) }
-                    switch status {
-                    case COMPRESSION_STATUS_OK:
-                        break
-                    case COMPRESSION_STATUS_END:
-                        finished = true
-                    default:
+        var totalOut: UInt64 = 0
+        var ended = false
+        while remaining > 0 && !ended {
+            let chunk = input.readData(ofLength: min(bufferSize, remaining))
+            guard !chunk.isEmpty else { throw ImportError.message("Truncated gzip file") }
+            remaining -= chunk.count
+            let processFlags: Int32 = remaining == 0 ? Int32(COMPRESSION_STREAM_FINALIZE.rawValue) : 0
+            try chunk.withUnsafeBytes { (raw: UnsafeRawBufferPointer) throws -> Void in
+                guard let base = raw.bindMemory(to: UInt8.self).baseAddress else { return }
+                stream.pointee.src_ptr = base
+                stream.pointee.src_size = chunk.count
+                while true {
+                    let inputBefore = stream.pointee.src_size
+                    stream.pointee.dst_ptr = destinationBuffer
+                    stream.pointee.dst_size = bufferSize
+                    let status = compression_stream_process(stream, processFlags)
+                    let produced = bufferSize - stream.pointee.dst_size
+                    if produced > 0 {
+                        output.write(Data(bytes: destinationBuffer, count: produced))
+                        totalOut += UInt64(produced)
+                    }
+                    if status == COMPRESSION_STATUS_END {
+                        ended = true
+                        return
+                    }
+                    guard status == COMPRESSION_STATUS_OK else {
                         throw ImportError.message("The download is not valid gzip data")
                     }
-                } while !finished && (streamPointer.pointee.src_size > 0 || streamPointer.pointee.dst_size == 0)
+                    // This chunk is done when its input is used up and the output buffer wasn't filled.
+                    if stream.pointee.src_size == 0 && produced < bufferSize { return }
+                    // No progress at all: stop rather than spin (the size check below decides).
+                    if produced == 0 && stream.pointee.src_size == inputBefore { return }
+                }
             }
-            if last && !finished { throw ImportError.message("The gzip data ended early") }
+        }
+        guard UInt32(truncatingIfNeeded: totalOut) == expectedSize else {
+            throw ImportError.message("The gzip data is incomplete (\(totalOut) bytes unpacked)")
         }
     }
 }
