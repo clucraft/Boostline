@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+
+- Heatmap rows were stretched to about 46 px instead of 30 px, so a full map didn't fit on screen without scrolling.
+
+### Changed
+
+- The README's Heatmaps guide now walks through every step with screenshots: the toolbar, the presets, jumping from a cell to the graphs, the axes editor and an exported PNG.
+
 ## [0.4.0] - 2026-10-09
 
 Heatmaps: see where in the map timing gets pulled, the mixture runs lean, or boost misses its target.

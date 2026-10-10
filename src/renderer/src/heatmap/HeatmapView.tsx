@@ -345,7 +345,7 @@ function HeatmapGridView({ model, selected, onSelect }: { model: HeatmapModel; s
         cell.n ? `${Number.isFinite(v) ? `${fmtVal(v, model.decimals)} · ` : ''}${cell.n} samples · ${cell.time.toFixed(1)} s` : 'No data'
       }`
       if (!Number.isFinite(v)) {
-        cellsDesc.push(<div key={i} className={`hm-cell empty ${cell.n ? 'few' : ''}`} title={cell.n ? `${tip} (below the minimum)` : tip} />)
+        cellsDesc.push(<div key={i} className={`hm-cell hm-empty ${cell.n ? 'few' : ''}`} title={cell.n ? `${tip} (below the minimum)` : tip} />)
         continue
       }
       const { bg, fg } = cellColor(model, v)

@@ -195,14 +195,23 @@ Your files go to `Documents/Boostline`, which you can change in Settings:
 
 ## Heatmaps
 
-The Log Viewer's **Heatmap** view sorts every sample of your logs into an RPM × load grid and colors each cell by a value of your choice. Instead of scrolling through pulls looking for a problem, you see straight away *where* in the map it happens.
+The Log Viewer's **Heatmap** view sorts every sample of your logs into an RPM × load grid and colors each cell by a value of your choice. Instead of scrolling through pulls looking for a problem, you see straight away *where* in the map it happens, and you can jump from any cell to the moments that landed there.
 
 ![The knock map: worst-cylinder timing correction by RPM and load, with a selected cell's statistics and the moments that landed in it](docs/screenshots/heatmap.png)
 
-### Getting started
+*The knock map on a 5-minute simulator log. Red cells show where timing was pulled. The panel on the right shows the selected cell's numbers and every moment that landed in it.*
 
-1. Open a log in the **Log Viewer** and switch the toggle next to its title from **Graphs** to **Heatmap**.
-2. Pick a **Preset**:
+### 1. Switch to the heatmap
+
+Open a log in the **Log Viewer** (**Open log**) and switch the toggle next to its title from **Graphs** to **Heatmap**. The controls are along the top:
+
+![The heatmap toolbar: Graphs/Heatmap toggle, preset, value and statistic pickers, Axes and Export buttons, filters and the minimum-samples slider](docs/screenshots/heatmap-toolbar.png)
+
+- **Top row:** the **Preset**, **Value** and **Statistic** pickers, plus **Axes** and **Export**.
+- **Second row:** the filters and the minimum-samples slider.
+- **Third row:** the logs in the grid. **Add logs** combines more of them.
+
+### 2. Pick a preset
 
 | Preset | Shows | Look for |
 |---|---|---|
@@ -212,22 +221,63 @@ The Log Viewer's **Heatmap** view sorts every sample of your logs into an RPM ×
 | **Rail pressure map** | How far rail pressure drops below target, in % | Large drops: the high-pressure pump is at its limit |
 | **Coverage** | Time spent in each cell | Which parts of the map your logs actually cover |
 
-3. **Click a cell** to see its mean, min, max, spread, sample count and time, plus every moment in the logs that landed there. Click a moment to jump to the graphs, zoomed in, with that stretch shaded orange.
+<table>
+  <tr>
+    <td><img src="docs/screenshots/heatmap-lambda.png" alt="Lambda map: lambda actual minus target by RPM and load"></td>
+    <td><img src="docs/screenshots/heatmap-boost.png" alt="Boost map: boost actual minus target by RPM and load"></td>
+    <td><img src="docs/screenshots/heatmap-coverage.png" alt="Coverage map: seconds spent in each RPM and load cell"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Lambda map</b>: one lean cell where the engine comes out of fuel cut</td>
+    <td align="center"><b>Boost map</b>: blue under target while the turbo spools at low RPM</td>
+    <td align="center"><b>Coverage</b>: seconds spent per cell</td>
+  </tr>
+</table>
+
+Diverging values like errors and corrections use **red for the bad direction and blue for the other**. Amounts like time or samples use a single blue scale. Dashed cells have no data, or fewer samples than the **Min samples** setting.
+
+### 3. Click a cell, then jump to the graphs
+
+Clicking a cell shows its mean, min, max, spread, sample count and time in the side panel, plus every moment in the logs that landed there (the longest twelve). Click a moment and Boostline switches back to **Graphs**, zoomed in on it with that stretch shaded orange, so you can see what the engine was doing:
+
+![The graphs after jumping from a heatmap cell: zoomed to the moment, with the stretch shaded orange](docs/screenshots/heatmap-jump.png)
 
 ### Options
 
-- **Value and statistic:** any channel works, not just the presets. Statistics are *Mean*, *Worst* (the bad direction for that value), *Min*, *Max*, *Std deviation*, *Samples* and *Time spent*.
-- **Axes:** columns default to engine speed (500–7,500 rpm in steps of 500), rows to relative engine load (0–260 % in steps of 20). In **Axes** you can pick other channels (boost, MAF, torque…) and set start, step and end, or use **Auto from data**. To line the grid up with a map in your tune, use the same breakpoints.
-- **Filters:**
-  - **Warm engine:** coolant at or above 80 °C.
-  - **Exclude transients:** skips sharp tip-ins, tip-outs and shifts.
-  - **Exclude fuel cut:** skips overrun with the pedal released.
-  - **All throttle / WOT / Part throttle.**
-  - **Gear.**
-  - **Visible range only:** uses the range you've zoomed to in the graphs.
-- **Min samples:** cells with fewer samples are hidden, so a single stray sample can't paint a cell.
-- **Several logs:** **Add logs** combines more logs into the same grid, e.g. a week of driving. Cells are weighted by time, so logs recorded at different sample rates combine fairly.
-- **Export:** **Copy table** (pastes into Excel or a map editor, highest load on top), **Save as CSV…**, or **Save as PNG…**.
+**Value and statistic.** Any channel works, not just the presets. Statistics are:
+- *Mean*
+- *Worst* (the bad direction for that value)
+- *Min* and *Max*
+- *Std deviation*
+- *Samples* and *Time spent*
+
+**Axes.** Columns default to engine speed (500–7,500 rpm in steps of 500) and rows to relative engine load (0–260 % in steps of 20).
+- In **Axes** you can pick other channels (boost, MAF, torque…), set start, step and end, or use **Auto from data**.
+- To line the grid up with a map in your tune, use the same breakpoints.
+- If more than 10 % of the samples fall outside the axes, Boostline tells you to widen them.
+
+![The axes editor: channel, start, step and end for columns and rows, with Auto from data](docs/screenshots/heatmap-axes.png)
+
+**Filters.**
+- **Warm engine:** coolant at or above 80 °C.
+- **Exclude transients:** skips sharp tip-ins, tip-outs and shifts. Normal boost build-up during a pull is kept.
+- **Exclude fuel cut:** skips overrun with the pedal released.
+- **All throttle / WOT / Part throttle.**
+- **Gear.**
+- **Visible range only:** uses the range you've zoomed to in the graphs.
+
+**Min samples.** Cells with fewer samples are hidden, so a single stray sample can't paint a cell.
+
+**Several logs.** **Add logs** combines more logs into the same grid, e.g. a week of driving. Cells are weighted by time, so logs recorded at different sample rates combine fairly. When several logs are combined, each moment in the side panel shows which log it came from.
+
+### Export
+
+**Export** offers three formats:
+- **Copy table:** pastes into Excel or a map editor, highest load on top, like a tune table.
+- **Save as CSV…**
+- **Save as PNG…:** a shareable image with the title, source log, axes and legend.
+
+![An exported heatmap PNG](docs/screenshots/heatmap-export.png)
 
 ### About the knock map (beta)
 

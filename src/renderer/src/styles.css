@@ -1297,11 +1297,11 @@ textarea {
   outline: 2px solid #ffffff;
   outline-offset: -2px;
 }
-.hm-cell.empty {
+.hm-cell.hm-empty {
   border: 1px dashed #1d2c3d;
   cursor: default;
 }
-.hm-cell.empty:hover {
+.hm-cell.hm-empty:hover {
   outline: none;
 }
 .hm-cell.few {
