@@ -14,15 +14,16 @@ Checked automatically on every push to `mobile` (GitHub workflow **iOS**), in an
 - **Download & import** of the BMW DME data works on the phone: 130 MB download, checksum,
   unpack, import (26 engine ECUs, 12,541 measurements in about 5 seconds).
 
-Not checked yet: a real iPhone, a real car, the MHD / bootmod3 adapters, the Local Network
-permission prompt, and the ENET cable.
+Tested on a real car (2026-10-10): an iPhone with the TestFlight build connected through the
+MHD WiFi adapter and showed live data. Not checked yet: the bootmod3 adapter and the ENET cable.
 
 ## What works and what's different
 
 | | iPhone / iPad |
 |---|---|
 | Simulator, Live, Analyze, Dyno, Drag, Settings | Yes |
-| MHD WiFi adapter, bootmod3 WiFi adapter | Built in, **not yet tested on a car** |
+| MHD WiFi adapter | Works (tested on a car) |
+| bootmod3 WiFi adapter | Built in, not yet tested on a car |
 | ENET cable | Needs a USB-C Ethernet adapter on the phone. Untested. |
 | Finding the adapter | iOS doesn't allow the broadcast that finds the gateway on a desktop, so Boostline tries the likely adapter addresses instead (the WiFi network's x.x.x.1 and common defaults). If that fails, enter the adapter's IP in **Settings → Connection → Gateway IP**. |
 | Logs, dyno and drag runs | Saved in the **Files** app under **On My iPhone › Boostline** (folders `Logs`, `Dyno`, `Drag`, `Exports`). |
