@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Cable, FolderOpen, Info, Loader2, Ruler, ScanSearch, Search, Settings2, Wifi } from 'lucide-react'
+import { CableIcon, DiagnosticsIcon, FolderIcon, InfoIcon, SearchIcon, SimulatorIcon, SpinnerIcon, UnitsIcon, GraphIcon, WifiIcon } from '../components/icons'
 import type { AdapterKind, UnitPrefs } from '@shared/types'
 import type { ProbeResult } from '@shared/ipc'
 import { api, useApp } from '../store'
@@ -58,12 +58,16 @@ export function SettingsPage() {
   }
 
   return (
-    <main className="settings-page">
+    <div className="page scroll">
+      <div className="page-toolbar">
+        <h1>Settings</h1>
+        <span className="sub">Saved automatically</span>
+      </div>
       <div className="settings-grid">
         <section className="card">
           <h3 className="card-title">
             <span className="row">
-              <Cable size={15} /> Connection
+              <CableIcon size={17} /> Connection
             </span>
           </h3>
           <div className="setting-row">
@@ -79,8 +83,11 @@ export function SettingsPage() {
               ))}
             </select>
           </div>
-          <div className="muted small" style={{ padding: '2px 0 10px', lineHeight: 1.5 }}>
-            {conn.kind === 'enet' ? <Cable size={12} /> : conn.kind === 'simulator' ? <Settings2 size={12} /> : <Wifi size={12} />} {ADAPTER_HELP[conn.kind]}
+          <div className="note" style={{ padding: '2px 0 12px', lineHeight: 1.55, alignItems: 'flex-start', color: 'var(--muted)' }}>
+            <span style={{ marginTop: 2 }}>
+              {conn.kind === 'enet' ? <CableIcon size={15} /> : conn.kind === 'simulator' ? <SimulatorIcon size={15} /> : <WifiIcon size={15} />}
+            </span>
+            <span>{ADAPTER_HELP[conn.kind]}</span>
           </div>
           {conn.kind !== 'simulator' && (
             <>
@@ -109,12 +116,12 @@ export function SettingsPage() {
                   <div className="desc">Scans the network, tries discovery and a read-only VIN request, and saves a byte-level capture.</div>
                 </div>
                 <button className="btn" onClick={runProbe} disabled={probing}>
-                  {probing ? <Loader2 size={13} className="spin" /> : <ScanSearch size={13} />} {probing ? 'Running…' : 'Run diagnostics'}
+                  {probing ? <SpinnerIcon size={15} className="spin" /> : <DiagnosticsIcon size={15} />} {probing ? 'Running…' : 'Run diagnostics'}
                 </button>
               </div>
               {probe && (
                 <div className="stack" style={{ marginTop: 6 }}>
-                  <div style={{ fontWeight: 700 }}>{probe.summary}</div>
+                  <div style={{ fontWeight: 600 }}>{probe.summary}</div>
                   <div className="code-block">{JSON.stringify(probe.report, null, 2)}</div>
                   {probe.capturePath && (
                     <div className="row">
@@ -122,7 +129,7 @@ export function SettingsPage() {
                         {probe.capturePath}
                       </span>
                       <button className="btn sm" onClick={() => api.showInFolder(probe.capturePath!)}>
-                        <Search size={12} /> Show file
+                        <SearchIcon size={14} /> Show file
                       </button>
                     </div>
                   )}
@@ -137,7 +144,7 @@ export function SettingsPage() {
         <section className="card">
           <h3 className="card-title">
             <span className="row">
-              <Ruler size={15} /> Units
+              <UnitsIcon size={17} /> Units
             </span>
           </h3>
           {UNIT_OPTIONS.map((u) => (
@@ -161,7 +168,7 @@ export function SettingsPage() {
         <section className="card">
           <h3 className="card-title">
             <span className="row">
-              <Search size={15} /> Log Viewer
+              <GraphIcon size={17} /> Graphs
             </span>
           </h3>
           {(
@@ -182,7 +189,7 @@ export function SettingsPage() {
           <div className="setting-row">
             <div>
               <div>Live graph window</div>
-              <div className="desc">Seconds of history shown while logging live.</div>
+              <div className="desc">Seconds of history shown in the live graphs.</div>
             </div>
             <div className="segmented">
               {[10, 30, 60, 120].map((s) => (
@@ -201,7 +208,7 @@ export function SettingsPage() {
         <section className="card">
           <h3 className="card-title">
             <span className="row">
-              <FolderOpen size={15} /> Logging
+              <FolderIcon size={17} /> Logging
             </span>
           </h3>
           <div className="setting-row">
@@ -222,12 +229,12 @@ export function SettingsPage() {
           </div>
           <div className="setting-row">
             <div>
-              <div>Auto-record WOT pulls</div>
-              <div className="desc">Start recording when the pedal passes 85 % and stop 3 s after lifting. Applies on the next connect.</div>
+              <div>Auto-capture WOT pulls</div>
+              <div className="desc">Start a capture when the pedal passes 85 % and stop 3 s after lifting. Applies on the next connect.</div>
             </div>
             <Toggle on={settings.autoRecordWot} onChange={(v) => updateSettings({ autoRecordWot: v })} />
           </div>
-          <div className="muted small" style={{ lineHeight: 1.6, marginTop: 6 }}>
+          <div className="help-text" style={{ marginTop: 6 }}>
             Logs are CSV files in <span className="mono">Logs</span>, dyno and drag runs are JSON files in <span className="mono">Dyno</span> /{' '}
             <span className="mono">Drag</span>, and custom channel definitions go in <span className="mono">Definitions</span>.
           </div>
@@ -236,26 +243,26 @@ export function SettingsPage() {
         <section className="card">
           <h3 className="card-title">
             <span className="row">
-              <Info size={15} /> About
+              <InfoIcon size={17} /> About
             </span>
           </h3>
           <div className="stack" style={{ lineHeight: 1.6 }}>
             <div>
               <b>Boostline</b> v{info?.version} · free and open source (MIT)
             </div>
-            <div className="muted small">
-              Logging, log viewer, road dyno and drag timing for BMW B38/B48/B58/S58/N63/S63 engines.
+            <div className="help-text">
+              Live data, log analysis, road dyno and drag timing for BMW B38/B48/B58/S58/N63/S63 engines.
               <br />
               Not affiliated with BMW, MHD or bootmod3. Use at your own risk; only read-only diagnostic services are sent to the car.
             </div>
             <div>
-              <a href="https://github.com/clucraft/Boostline" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
+              <a href="https://github.com/clucraft/Boostline" target="_blank" rel="noreferrer">
                 github.com/clucraft/Boostline
               </a>
             </div>
           </div>
         </section>
       </div>
-    </main>
+    </div>
   )
 }

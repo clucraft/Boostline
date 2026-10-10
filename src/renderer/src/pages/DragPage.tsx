@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Crosshair, Expand, FileSpreadsheet, Flag, Image, Minus, Plus, Save, Shrink, Trash2, X } from 'lucide-react'
 import type { DragEnvironment, DragMode, DragResult, SavedDragRun, SpeedCalPoint } from '@shared/types'
 import { CH } from '@shared/types'
 import { analyzeDrag, DRAG_MODES, DragDetector, dragInputFromLog } from '@shared/analysis/drag'
@@ -9,8 +8,24 @@ import type { RunEntry } from '@shared/ipc'
 import { api, isOnline, useApp } from '../store'
 import { liveBuffer } from '../lib/liveBuffer'
 import { stamp, uid } from '../lib/format'
-import { Chart, type ChartHandle, type ChartScale, type ChartSeries } from '../components/Chart'
+import { Chart, type ChartHandle, type ChartRegion, type ChartScale, type ChartSeries } from '../components/Chart'
 import { Collapsible, NumberField, PromptModal } from '../components/ui'
+import {
+  ArmIcon,
+  CloseIcon,
+  CsvIcon,
+  DragIcon,
+  ExpandIcon,
+  ImageIcon,
+  MinusIcon,
+  PlusIcon,
+  SaveIcon,
+  ShrinkIcon,
+  TrashIcon,
+  WarningIcon
+} from '../components/icons'
+import { RUN_COLORS } from '../lib/colors'
+import { RunSteps } from './RunSteps'
 
 const MODES: { mode: DragMode; label: string }[] = [
   { mode: '0-100', label: '0–100 km/h' },
@@ -23,13 +38,14 @@ const MODES: { mode: DragMode; label: string }[] = [
 ]
 const modeLabel = (m: DragMode): string => MODES.find((x) => x.mode === m)?.label ?? m
 const LIVE_IDS = [CH.speed, CH.gear, CH.rpm]
+const SHIFT_MARK = 'rgba(237, 237, 238, 0.3)'
 
 type DState = 'idle' | 'waiting-stop' | 'ready' | 'running' | 'finished' | 'aborted'
 const STATE_TEXT: Record<DState, string> = {
   idle: '',
   'waiting-stop': 'Armed · come to a complete stop',
   ready: 'Ready · launch when you are',
-  running: '● Running…',
+  running: 'Running…',
   finished: 'Finished',
   aborted: 'Aborted · speed dropped before the finish'
 }
@@ -185,13 +201,18 @@ export function DragPage() {
     return {
       x: result.curve.t,
       series: [
-        { label: 'Raw vehicle speed', color: '#6b7a8c', scale: 'v', values: result.curve.raw.map(disp), width: 1.3, decimals: 1, unit: speedUnit },
-        { label: 'Calibrated vehicle speed', color: '#3b9cff', scale: 'v', values: result.curve.calibrated.map(disp), width: 2, decimals: 1, unit: speedUnit }
+        { label: 'Raw vehicle speed', color: '#6b6b74', scale: 'v', values: result.curve.raw.map(disp), width: 1.3, decimals: 1, unit: speedUnit },
+        { label: 'Calibrated vehicle speed', color: RUN_COLORS[0], scale: 'v', values: result.curve.calibrated.map(disp), width: 2, decimals: 1, unit: speedUnit }
       ] as ChartSeries[]
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result, speedUnit])
   const scales: ChartScale[] = useMemo(() => [{ key: 'v', label: `Speed · ${speedUnit}`, side: 'left', show: true }], [speedUnit])
+  // Thin vertical marks where the gearbox shifted.
+  const shiftMarks: ChartRegion[] = useMemo(
+    () => (result?.gearChanges ?? []).map((g) => ({ from: g.time - 0.006, to: g.time + 0.006, color: SHIFT_MARK })),
+    [result]
+  )
 
   const pngOut = async (): Promise<void> => {
     const data = chart.current?.toPng(current?.name ?? 'Drag', series.map((s) => ({ label: s.label, color: s.color })))
@@ -200,286 +221,300 @@ export function DragPage() {
 
   const online = isOnline(status)
   const env = result?.environment ?? drag.environment
+  const step = armed ? 1 : result ? 2 : 0
+  const distanceMode = !!result && /m$/.test(result.mode)
+  const maxSplit = Math.max(1e-6, ...(result?.splits ?? []).map((s) => s.time))
+  const stateText =
+    state === 'idle'
+      ? online
+        ? 'Ready to arm'
+        : 'Connect to arm a live run'
+      : state === 'waiting-stop' && !DRAG_MODES[drag.mode].standing
+        ? `Armed · slow below ${disp(DRAG_MODES[drag.mode].fromKmh).toFixed(0)} ${speedUnit}, then accelerate`
+        : STATE_TEXT[state]
 
   return (
-    <main className="page">
-      {!expanded && (
-        <aside className="sidebar" style={{ overflowY: 'auto' }}>
-          <section className="card">
-            <h3 className="card-title">Run</h3>
-            <div className="stack">
+    <div className="page">
+      <div className="page-toolbar">
+        <h1>Drag</h1>
+        <RunSteps step={step} labels={['Set up', 'Run', 'Results']} />
+        <span
+          className={`status-line ${state === 'running' ? 'running' : state === 'waiting-stop' || state === 'ready' ? 'armed' : state === 'finished' ? 'done' : ''}`}
+        >
+          {(state === 'waiting-stop' || state === 'ready') && <span className="dot connecting" />}
+          {state === 'running' && <span className="dot rec" />}
+          {stateText}
+        </span>
+        <div className="spacer" />
+        <select className="select" style={{ width: 170 }} value={drag.mode} disabled={armed} onChange={(e) => setDrag({ mode: e.target.value as DragMode })} title="Mode">
+          {MODES.map((m) => (
+            <option key={m.mode} value={m.mode}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+        <button className="btn" onClick={fromLogFile}>
+          <CsvIcon size={15} /> Time a log…
+        </button>
+        <button className={`btn ${armed ? 'danger' : 'primary'}`} onClick={arm} disabled={!online && !armed}>
+          {armed ? <CloseIcon size={15} /> : <ArmIcon size={15} weight="bold" />} {armed ? 'Disarm' : 'Arm run'}
+        </button>
+      </div>
+
+      <div className="page-body">
+        <div className="page-main scroll">
+          <div className="metrics">
+            <div className="metric hero">
+              <div className="label">Final time</div>
+              <div className={`value ${result?.finalTime != null ? '' : 'placeholder'}`}>
+                {result?.finalTime != null ? result.finalTime.toFixed(3) : '—'}
+                <small>s</small>
+              </div>
+              <div className="sub">{modeLabel(result?.mode ?? drag.mode)}</div>
+            </div>
+            <div className="metric">
+              <div className="label">Distance</div>
+              <div className={`value ${result ? '' : 'placeholder'}`}>
+                {result ? result.distanceM.toFixed(2) : '—'}
+                <small>m</small>
+              </div>
+              <div className="sub">{result && !result.finished ? 'run not finished' : ' '}</div>
+            </div>
+            <div className="metric">
+              <div className="label">{distanceMode ? 'Trap speed' : 'Speed at finish'}</div>
+              <div className={`value ${result?.trapSpeedKmh != null ? '' : 'placeholder'}`}>
+                {result?.trapSpeedKmh != null ? disp(result.trapSpeedKmh).toFixed(1) : '—'}
+                <small>{speedUnit}</small>
+              </div>
+              <div className="sub">{' '}</div>
+            </div>
+          </div>
+
+          <div className="info-line">
+            <span>
+              Altitude <b>{env.altitudeM} m</b>
+            </span>
+            <span>
+              Outside temperature <b>{env.ambientTempC.toFixed(1)} °C</b>
+            </span>
+            <span>
+              Relative humidity <b>{env.humidityPct} %</b>
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 2fr)', gap: 12, flex: 'none' }}>
+            <section className="card">
+              <h3 className="card-title">
+                10 {splitStep} splits <span className="count-badge">time from start</span>
+              </h3>
+              {result?.splits.length ? (
+                <div className="bar-list">
+                  {result.splits.map((s) => (
+                    <div className="bar-row" key={s.speedKmh}>
+                      <span>
+                        {disp(s.speedKmh).toFixed(0)} {speedUnit}
+                      </span>
+                      <div className="bar-track">
+                        <div className="bar-fill" style={{ width: `${(s.time / maxSplit) * 100}%` }} />
+                      </div>
+                      <b>{s.time.toFixed(3)} s</b>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="muted small">Splits appear here after a run.</div>
+              )}
+            </section>
+            <section className="card">
+              <h3 className="card-title">Gear changes</h3>
+              {result?.gearChanges.length ? (
+                <div className="shift-list">
+                  {result.gearChanges.map((g, i) => (
+                    <div className="shift" key={i}>
+                      <span className="gears">
+                        {g.from} → {g.to}
+                      </span>
+                      <span className="mono">
+                        {disp(g.speedKmh).toFixed(1)} {speedUnit}
+                      </span>
+                      <b>{g.time.toFixed(3)} s</b>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="muted small">Shifts appear here when the log has a gear channel.</div>
+              )}
+            </section>
+          </div>
+
+          <section className="card flex result-chart">
+            <div className="panel-header">
+              <h2 className="ellipsis">{current ? current.name : 'Speed'}</h2>
+              <div className="actions">
+                {current && !saved && (
+                  <button className="btn primary sm" onClick={() => saveRun(current)}>
+                    <SaveIcon size={14} /> Save run
+                  </button>
+                )}
+                <button className="btn sm" onClick={pngOut} disabled={!result}>
+                  <ImageIcon size={14} /> Save PNG
+                </button>
+                <button className="btn sm ghost" onClick={() => setExpanded(!expanded)} title={expanded ? 'Show setup and saved runs' : 'Hide setup and saved runs'}>
+                  {expanded ? <ShrinkIcon size={14} /> : <ExpandIcon size={14} />}
+                  {expanded ? 'Restore' : 'Expand'}
+                </button>
+              </div>
+            </div>
+            {result ? (
+              <>
+                <div className="graph-legend" style={{ paddingLeft: 60 }}>
+                  {series.map((s) => (
+                    <span key={s.label} className="legend-item">
+                      <span className="swatch" style={{ background: s.color }} />
+                      {s.label}
+                    </span>
+                  ))}
+                  {result.gearChanges.length > 0 && (
+                    <span className="legend-item">
+                      <span className="swatch" style={{ background: SHIFT_MARK, width: 3, height: 12 }} />
+                      Gear change
+                    </span>
+                  )}
+                </div>
+                <Chart ref={chart} x={x} xLabel="Time · s" xDecimals={0} series={series} scales={scales} regions={shiftMarks} tooltip />
+              </>
+            ) : (
+              <div className="empty" style={{ margin: 'auto', maxWidth: 540 }}>
+                Choose a mode and <b>arm</b> it. Standing starts wait for the car to stop, then time from the moment it moves. Or <b>time a log</b> you
+                already recorded.
+              </div>
+            )}
+          </section>
+
+          {result && result.warnings.length > 0 && (
+            <div className="warning-bar">
+              <WarningIcon size={16} />
+              {result.warnings.join(' · ')}
+            </div>
+          )}
+          <div className="warning-bar">
+            <WarningIcon size={16} />
+            Closed courses only. Never time acceleration runs on public roads.
+          </div>
+        </div>
+
+        {!expanded && (
+          <aside className="inspector">
+            <section className="card">
+              <h3 className="card-title">Setup</h3>
               <div className="field">
-                <label>Mode</label>
-                <select className="select" value={drag.mode} disabled={armed} onChange={(e) => setDrag({ mode: e.target.value as DragMode })}>
-                  {MODES.map((m) => (
-                    <option key={m.mode} value={m.mode}>
-                      {m.label}
-                    </option>
+                <label>Saved profiles</label>
+                <select className="select" value={drag.profile ?? ''} onChange={(e) => loadProfile(e.target.value)}>
+                  <option value="">—</option>
+                  {presets.dragProfiles.map((p) => (
+                    <option key={p.name}>{p.name}</option>
                   ))}
                 </select>
               </div>
-              <button className={`btn lg block ${armed ? 'red' : 'green'}`} onClick={arm} disabled={!online && !armed}>
-                {armed ? <X size={15} /> : <Crosshair size={15} />} {armed ? 'Disarm' : 'Arm drag'}
-              </button>
-              <button className="btn block" onClick={fromLogFile}>
-                <FileSpreadsheet size={14} /> Time a log…
-              </button>
-              <div className={`run-state ${state}`}>
-                {state === 'idle'
-                  ? online
-                    ? 'Ready to arm'
-                    : 'Connect to arm a live run'
-                  : state === 'waiting-stop' && !DRAG_MODES[drag.mode].standing
-                    ? `Armed · slow below ${disp(DRAG_MODES[drag.mode].fromKmh).toFixed(0)} ${speedUnit}, then accelerate`
-                    : STATE_TEXT[state]}
+              <div className="section-label" style={{ marginTop: 14 }}>
+                Speed calibration
               </div>
-            </div>
-          </section>
-
-          <section className="card">
-            <h3 className="card-title">Setup</h3>
-            <div className="field">
-              <label>Saved profiles</label>
-              <select className="select" value={drag.profile ?? ''} onChange={(e) => loadProfile(e.target.value)}>
-                <option value="">—</option>
-                {presets.dragProfiles.map((p) => (
-                  <option key={p.name}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="section-label" style={{ marginTop: 12 }}>
-              Speed calibration
-            </div>
-            <div className="grid-2">
-              <div className="field">
-                <label>ECU/raw · {speedUnit}</label>
-                <input className="input" value={newPoint.ecu} onChange={(e) => setNewPoint({ ...newPoint, ecu: e.target.value })} />
+              <div className="grid-2">
+                <div className="field">
+                  <label>ECU/raw · {speedUnit}</label>
+                  <input className="input" value={newPoint.ecu} onChange={(e) => setNewPoint({ ...newPoint, ecu: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label>GPS · {speedUnit}</label>
+                  <input
+                    className="input"
+                    value={newPoint.gps}
+                    onChange={(e) => setNewPoint({ ...newPoint, gps: e.target.value })}
+                    onKeyDown={(e) => e.key === 'Enter' && addPoint()}
+                  />
+                </div>
               </div>
-              <div className="field">
-                <label>GPS · {speedUnit}</label>
-                <input
-                  className="input"
-                  value={newPoint.gps}
-                  onChange={(e) => setNewPoint({ ...newPoint, gps: e.target.value })}
-                  onKeyDown={(e) => e.key === 'Enter' && addPoint()}
-                />
+              <div className="row" style={{ marginTop: 8 }}>
+                <button className="btn sm" style={{ flex: 1 }} onClick={addPoint}>
+                  <PlusIcon size={13} weight="bold" /> Add point
+                </button>
+                <button className="btn sm" style={{ flex: 1 }} onClick={removePoint} disabled={selectedPoint < 0}>
+                  <MinusIcon size={13} weight="bold" /> Remove point
+                </button>
               </div>
-            </div>
-            <div className="row" style={{ marginTop: 8 }}>
-              <button className="btn sm" style={{ flex: 1 }} onClick={addPoint}>
-                <Plus size={12} /> Add point
-              </button>
-              <button className="btn sm" style={{ flex: 1 }} onClick={removePoint} disabled={selectedPoint < 0}>
-                <Minus size={12} /> Remove point
-              </button>
-            </div>
-            <div className="card" style={{ marginTop: 8, padding: 6, minHeight: 90, background: '#0a121b' }}>
-              {drag.calibration.length ? (
-                <table className="cal-table">
-                  <thead>
-                    <tr>
-                      <th>ECU</th>
-                      <th>GPS</th>
-                      <th>Factor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {drag.calibration.map((p: SpeedCalPoint, i) => (
-                      <tr key={i} className={i === selectedPoint ? 'selected' : ''} onClick={() => setSelectedPoint(i === selectedPoint ? -1 : i)} style={{ cursor: 'pointer' }}>
-                        <td>{disp(p.ecu).toFixed(1)}</td>
-                        <td>{disp(p.gps).toFixed(1)}</td>
-                        <td>{(p.gps / p.ecu).toFixed(4)}</td>
+              <div className="card inset" style={{ marginTop: 8, padding: 6, minHeight: 90 }}>
+                {drag.calibration.length ? (
+                  <table className="cal-table">
+                    <thead>
+                      <tr>
+                        <th>ECU</th>
+                        <th>GPS</th>
+                        <th>Factor</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="muted small" style={{ padding: 6 }}>
-                  No calibration: the ECU speed is used as is. Add points that compare ECU speed with a GPS reading at steady speed.
-                </div>
-              )}
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <Collapsible title="Environment">
-                <div className="grid-3">
-                  <NumberField label="Altitude · m" value={drag.environment.altitudeM} onChange={(v) => setEnv({ altitudeM: v })} step={10} />
-                  <NumberField label="Temp · °C" value={drag.environment.ambientTempC} onChange={(v) => setEnv({ ambientTempC: v })} step={0.5} />
-                  <NumberField label="Humidity · %" value={drag.environment.humidityPct} onChange={(v) => setEnv({ humidityPct: v })} />
-                </div>
-              </Collapsible>
-            </div>
-            <div className="row" style={{ justifyContent: 'flex-end', marginTop: 8 }}>
-              <button className="btn sm" onClick={() => setSavingProfile(true)}>
-                <Save size={12} /> Save profile
-              </button>
-            </div>
-          </section>
-
-          <section className="card">
-            <h3 className="card-title">Saved runs</h3>
-            <div className="run-list">
-              {runs.map((r) => (
-                <div key={r.id} className={`run-item ${current?.id === r.id ? 'selected' : ''}`} onClick={() => openRun(r)}>
-                  <Flag size={12} className="dim" />
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                  <button
-                    className="icon-btn"
-                    onClick={async (e) => {
-                      e.stopPropagation()
-                      await api.deleteRun('drag', r.id)
-                      refreshRuns()
-                    }}
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              ))}
-              {!runs.length && <div className="muted small">Finished runs are saved here automatically.</div>}
-            </div>
-          </section>
-        </aside>
-      )}
-
-      <section className="card content" style={{ gap: 0 }}>
-        <div className="panel-header">
-          <h2>
-            <Flag size={19} /> Drag
-          </h2>
-          {current && (
-            <span className="log-chip">
-              <b>{current.name}</b>
-            </span>
-          )}
-          <div className="actions">
-            {current && !saved && (
-              <button className="btn primary" onClick={() => saveRun(current)}>
-                <Save size={13} /> Save run
-              </button>
-            )}
-            <button className="btn" onClick={pngOut} disabled={!result}>
-              <Image size={13} /> Save graph (PNG)
-            </button>
-            <button className="btn" onClick={() => setExpanded(!expanded)}>
-              {expanded ? <Shrink size={13} /> : <Expand size={13} />}
-              {expanded ? 'Restore' : 'Expand'}
-            </button>
-          </div>
-        </div>
-
-        <div className="stat-cards">
-          <div className="stat-card">
-            <div className="label">Mode</div>
-            <div className="value" style={{ fontSize: 22 }}>
-              {modeLabel(result?.mode ?? drag.mode)}
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="label">Final time</div>
-            {result?.finalTime != null && (
-              <div className="value">
-                {result.finalTime.toFixed(3)}
-                <small>s</small>
-              </div>
-            )}
-          </div>
-          <div className="stat-card">
-            <div className="label">{result?.trapSpeedKmh != null && /m$/.test(result.mode) ? 'Distance · trap speed' : 'Distance'}</div>
-            {result && (
-              <div className="value">
-                {result.distanceM.toFixed(2)}
-                <small>m</small>
-                {result.trapSpeedKmh != null && /m$/.test(result.mode) && (
-                  <small>
-                    · {disp(result.trapSpeedKmh).toFixed(1)} {speedUnit}
-                  </small>
+                    </thead>
+                    <tbody>
+                      {drag.calibration.map((p: SpeedCalPoint, i) => (
+                        <tr key={i} className={i === selectedPoint ? 'selected' : ''} onClick={() => setSelectedPoint(i === selectedPoint ? -1 : i)} style={{ cursor: 'pointer' }}>
+                          <td>{disp(p.ecu).toFixed(1)}</td>
+                          <td>{disp(p.gps).toFixed(1)}</td>
+                          <td>{(p.gps / p.ecu).toFixed(4)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="muted small" style={{ padding: 6 }}>
+                    No calibration: the ECU speed is used as is. Add points that compare ECU speed with a GPS reading at steady speed.
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        </div>
-
-        <div className="info-line" style={{ justifyContent: 'space-between' }}>
-          <span>
-            Altitude <b>{env.altitudeM} m</b>
-          </span>
-          <span>
-            Outside temperature <b>{env.ambientTempC.toFixed(1)} °C</b>
-          </span>
-          <span>
-            Relative humidity <b>{env.humidityPct} %</b>
-          </span>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <div className="card" style={{ background: '#0a131c', minHeight: 150 }}>
-            <h3 className="card-title" style={{ color: '#5fb4ff' }}>
-              10 {splitStep} splits
-            </h3>
-            <div className="splits-grid">
-              {(result?.splits ?? []).map((s) => (
-                <div className="split" key={s.speedKmh}>
-                  <span>
-                    {disp(s.speedKmh).toFixed(0)} {speedUnit}
-                  </span>
-                  <b>{s.time.toFixed(3)} s</b>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="card" style={{ background: '#0a131c', minHeight: 150 }}>
-            <h3 className="card-title" style={{ color: '#5fb4ff' }}>
-              Gear changes
-            </h3>
-            <div className="stack" style={{ gap: 6 }}>
-              {(result?.gearChanges ?? []).map((g, i) => (
-                <div className="split" key={i}>
-                  <span>
-                    {g.from} → {g.to}
-                  </span>
-                  <b>
-                    {g.time.toFixed(3)} s · {disp(g.speedKmh).toFixed(1)} {speedUnit}
-                  </b>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ flex: 1, minHeight: 200, display: 'flex', flexDirection: 'column', marginTop: 10 }}>
-          {result ? (
-            <>
-              <div className="graph-legend" style={{ paddingLeft: 60 }}>
-                {series.map((s) => (
-                  <span key={s.label} className="legend-item">
-                    <span className="swatch" style={{ background: s.color }} />
-                    {s.label}
-                  </span>
-                ))}
+              <div style={{ marginTop: 8 }}>
+                <Collapsible title="Environment">
+                  <div className="grid-3">
+                    <NumberField label="Altitude · m" value={drag.environment.altitudeM} onChange={(v) => setEnv({ altitudeM: v })} step={10} />
+                    <NumberField label="Temp · °C" value={drag.environment.ambientTempC} onChange={(v) => setEnv({ ambientTempC: v })} step={0.5} />
+                    <NumberField label="Humidity · %" value={drag.environment.humidityPct} onChange={(v) => setEnv({ humidityPct: v })} />
+                  </div>
+                </Collapsible>
               </div>
-              <Chart ref={chart} x={x} xLabel="Time · s" xDecimals={0} series={series} scales={scales} tooltip />
-            </>
-          ) : (
-            <div className="empty" style={{ margin: 'auto', maxWidth: 520 }}>
-              Choose a mode and <b>arm</b> it. Standing starts wait for the car to stop, then time from the moment it moves. Or <b>time a log</b> you
-              already recorded.
-            </div>
-          )}
-        </div>
+              <div className="row" style={{ justifyContent: 'flex-end', marginTop: 8 }}>
+                <button className="btn sm" onClick={() => setSavingProfile(true)}>
+                  <SaveIcon size={13} /> Save profile
+                </button>
+              </div>
+            </section>
 
-        {result && result.warnings.length > 0 && (
-          <div className="warning-bar">
-            <AlertTriangle size={15} />
-            {result.warnings.join(' · ')}
-          </div>
+            <section className="card">
+              <h3 className="card-title">Saved runs</h3>
+              <div className="run-list">
+                {runs.map((r) => (
+                  <div key={r.id} className={`run-item ${current?.id === r.id ? 'selected' : ''}`} onClick={() => openRun(r)}>
+                    <DragIcon size={14} className="dim" />
+                    <span className="ellipsis" style={{ flex: 1 }}>
+                      {r.name}
+                    </span>
+                    <button
+                      className="icon-btn"
+                      title="Delete run"
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        await api.deleteRun('drag', r.id)
+                        refreshRuns()
+                      }}
+                    >
+                      <TrashIcon size={14} />
+                    </button>
+                  </div>
+                ))}
+                {!runs.length && <div className="muted small">Finished runs are saved here automatically.</div>}
+              </div>
+            </section>
+          </aside>
         )}
-        <div className="warning-bar">
-          <AlertTriangle size={15} />
-          Closed courses only. Never time acceleration runs on public roads.
-        </div>
-      </section>
+      </div>
       {savingProfile && (
         <PromptModal title="Save drag profile" label="Profile name" initial={drag.profile ?? ''} onSubmit={saveProfile} onClose={() => setSavingProfile(false)} />
       )}
-    </main>
+    </div>
   )
 }

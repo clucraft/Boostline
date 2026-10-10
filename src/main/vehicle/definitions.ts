@@ -15,7 +15,7 @@
  *     "channels": [
  *       {
  *         "id": "boost.target",                       // [A-Za-z0-9_.-]+; may reuse a built-in id to replace it
- *         "name": "Boost Pressure · Target",
+ *         "name": "Boost target",
  *         "group": "Boost",                           // a ChannelGroup
  *         "unit": "bar",
  *         "quantity": "pressure",                     // a Quantity
@@ -35,7 +35,7 @@
  *         }
  *       },
  *       {
- *         "id": "knock.cyl1", "name": "Knock Retard · Cyl 1", "group": "Knock", "unit": "°CRK",
+ *         "id": "knock.cyl1", "name": "Knock retard cyl 1", "group": "Knock", "unit": "°CRK",
  *         "quantity": "angle", "decimals": 2,
  *         "source": {
  *           "type": "memory",                         // ECU RAM, logged through a dynamically defined

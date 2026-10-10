@@ -1,21 +1,21 @@
 /** Series palette, tuned for the dark chart background. */
 export const SERIES_COLORS = [
-  '#ff4d5e',
-  '#3b9cff',
-  '#ffa630',
-  '#f97316',
-  '#22c55e',
+  '#ffad33',
+  '#38bdf8',
   '#a78bfa',
+  '#4ade80',
   '#f472b6',
+  '#e5e7eb',
+  '#f87171',
+  '#2dd4bf',
   '#facc15',
-  '#22d3ee',
-  '#84cc16'
+  '#818cf8'
 ]
 
 export const colorAt = (i: number): string => SERIES_COLORS[i % SERIES_COLORS.length]
 
 /** Colors for compared dyno / drag runs. */
-export const RUN_COLORS = ['#3b9cff', '#ffa630', '#22c55e', '#f472b6', '#a78bfa', '#22d3ee']
+export const RUN_COLORS = ['#ffad33', '#38bdf8', '#a78bfa', '#4ade80', '#f472b6', '#2dd4bf']
 
 export function withAlpha(hex: string, alpha: number): string {
   const n = parseInt(hex.slice(1), 16)

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Crosshair, Expand, FileSpreadsheet, FolderOpen, Gauge, Image, Save, Shrink, Trash2, X } from 'lucide-react'
 import type { DynoInput, DynoResult, DynoSetup, SavedDynoRun } from '@shared/types'
 import { CH } from '@shared/types'
 import { analyzeDyno, DynoDetector, dynoInputFromLog } from '@shared/analysis/dyno'
@@ -13,9 +12,16 @@ import { RUN_COLORS } from '../lib/colors'
 import { stamp, uid } from '../lib/format'
 import { Chart, type ChartHandle, type ChartScale, type ChartSeries } from '../components/Chart'
 import { Collapsible, NumberField } from '../components/ui'
+import { ArmIcon, CloseIcon, CsvIcon, ExpandIcon, ImageIcon, SaveIcon, ShrinkIcon, TrashIcon, WarningIcon } from '../components/icons'
+import { RunSteps } from './RunSteps'
 
 type ArmState = 'idle' | 'armed' | 'recording' | 'done'
 const LIVE_IDS = [CH.rpm, CH.speed, CH.pedal, CH.gear, CH.baro, CH.ambientTemp]
+const ENGINE = RUN_COLORS[0]
+const WHEEL = '#fcd9a1'
+const TORQUE = '#38bdf8'
+/** Overlaid saved runs: colors that don't clash with the main run's three curves. */
+const OVERLAY = ['#a78bfa', '#4ade80', '#f472b6', '#2dd4bf', '#e5e7eb']
 
 const toArrays = (input: DynoInput): SavedDynoRun['input'] => ({
   t: Array.from(input.t),
@@ -176,7 +182,7 @@ export function DynoPage() {
   // ------------------------------------------------------------ chart data
   const shown: { name: string; result: DynoResult; color: string; dashed: boolean }[] = [
     ...(result ? [{ name: current!.name, result, color: RUN_COLORS[0], dashed: false }] : []),
-    ...compare.filter((r) => r.id !== current?.id).map((r, i) => ({ name: r.name, result: r.result, color: RUN_COLORS[(i + 1) % RUN_COLORS.length], dashed: true }))
+    ...compare.filter((r) => r.id !== current?.id).map((r, i) => ({ name: r.name, result: r.result, color: OVERLAY[i % OVERLAY.length], dashed: true }))
   ]
 
   const { x, series, legend } = useMemo(() => {
@@ -191,11 +197,11 @@ export function DynoPage() {
       const suffix = i === 0 ? '' : ` · ${s.name}`
       const dash = s.dashed ? [6, 4] : undefined
       series.push(
-        { label: `Engine · ${units.power}${suffix}`, color: i === 0 ? '#3b9cff' : s.color, scale: 'p', values: col((p) => powerFromKw(p.engineKw, units.power)), dash, width: 2, decimals: 1, unit: units.power },
-        { label: `Wheel · ${units.power}${suffix}`, color: i === 0 ? '#7dd3fc' : s.color, scale: 'p', values: col((p) => powerFromKw(p.wheelKw, units.power)), dash: dash ?? [2, 3], width: 1.5, decimals: 1, unit: units.power },
-        { label: `Torque · ${units.torque}${suffix}`, color: i === 0 ? '#ffa630' : s.color, scale: 't', values: col((p) => torqueFromNm(p.torqueNm, units.torque)), dash, width: 2, decimals: 0, unit: units.torque }
+        { label: `Engine · ${units.power}${suffix}`, color: i === 0 ? ENGINE : s.color, scale: 'p', values: col((p) => powerFromKw(p.engineKw, units.power)), dash, width: 2, decimals: 1, unit: units.power },
+        { label: `Wheel · ${units.power}${suffix}`, color: i === 0 ? WHEEL : s.color, scale: 'p', values: col((p) => powerFromKw(p.wheelKw, units.power)), dash: dash ?? [2, 3], width: 1.5, decimals: 1, unit: units.power },
+        { label: `Torque · ${units.torque}${suffix}`, color: i === 0 ? TORQUE : s.color, scale: 't', values: col((p) => torqueFromNm(p.torqueNm, units.torque)), dash, width: 2, decimals: 0, unit: units.torque }
       )
-      if (i === 0) legend.push({ label: `Engine · ${units.power}`, color: '#3b9cff' }, { label: `Wheel · ${units.power}`, color: '#7dd3fc' }, { label: `Torque · ${units.torque}`, color: '#ffa630' })
+      if (i === 0) legend.push({ label: `Engine · ${units.power}`, color: ENGINE }, { label: `Wheel · ${units.power}`, color: WHEEL }, { label: `Torque · ${units.torque}`, color: TORQUE })
       else legend.push({ label: s.name, color: s.color })
     })
     return { x, series, legend }
@@ -204,8 +210,8 @@ export function DynoPage() {
 
   const scales: ChartScale[] = useMemo(
     () => [
-      { key: 'p', label: `Power · ${units.power}`, side: 'left', show: true, color: '#7f93a8' },
-      { key: 't', label: `Torque · ${units.torque}`, side: 'right', show: true, color: '#7f93a8' }
+      { key: 'p', label: `Power · ${units.power}`, side: 'left', show: true },
+      { key: 't', label: `Torque · ${units.torque}`, side: 'right', show: true }
     ],
     [units.power, units.torque]
   )
@@ -213,229 +219,229 @@ export function DynoPage() {
   const peak = (kw: number): string => powerFromKw(kw, units.power).toFixed(0)
   const live = isOnline(status)
 
+  const armed = arm === 'armed' || arm === 'recording'
+  const step = armed ? 1 : result ? 2 : 0
+
   return (
-    <main className="page">
-      {!expanded && (
-        <aside className="sidebar" style={{ overflowY: 'auto' }}>
-          <section className="card">
-            <h3 className="card-title">Run</h3>
-            <div className="stack">
-              <button className={`btn lg block ${arm === 'armed' || arm === 'recording' ? 'red' : 'green'}`} onClick={armRun} disabled={!live && arm !== 'armed'}>
-                {arm === 'armed' || arm === 'recording' ? <X size={15} /> : <Crosshair size={15} />}
-                {arm === 'armed' || arm === 'recording' ? 'Disarm' : 'Arm run'}
-              </button>
-              <button className="btn block" onClick={analyzeLogFile}>
-                <FileSpreadsheet size={14} /> Analyze a log…
-              </button>
-              <div className={`run-state ${arm}`}>
-                {arm === 'idle' && (live ? 'Ready to arm' : 'Connect to arm a live run')}
-                {arm === 'armed' && `Armed · floor it above ${setup.startRpm} rpm`}
-                {arm === 'recording' && '● Recording pull…'}
-                {arm === 'done' && 'Finished'}
-              </div>
-            </div>
-          </section>
-
-          <section className="card">
-            <h3 className="card-title">Setup</h3>
-            <div className="grid-2">
-              <NumberField label="Vehicle mass · kg" value={setup.massKg} onChange={(v) => setSetup({ massKg: v })} step={5} />
-              <NumberField label="Drivetrain loss · %" value={setup.drivetrainLossPct} onChange={(v) => setSetup({ drivetrainLossPct: v })} />
-              <NumberField label="Start RPM" value={setup.startRpm} onChange={(v) => setSetup({ startRpm: v })} step={100} />
-              <NumberField label="End RPM" value={setup.endRpm} onChange={(v) => setSetup({ endRpm: v })} step={100} />
-              <NumberField label="Min pedal · %" value={setup.minPedalPct} onChange={(v) => setSetup({ minPedalPct: v })} />
-              <NumberField label="Smoothing · s" value={setup.smoothingSec} onChange={(v) => setSetup({ smoothingSec: v })} step={0.1} />
-              <NumberField label="Outside temp · °C" value={setup.ambientTempC} onChange={(v) => setSetup({ ambientTempC: v })} step={0.5} />
-              <NumberField label="Humidity · %" value={setup.humidityPct} onChange={(v) => setSetup({ humidityPct: v })} />
-              <div className="field">
-                <label>Vehicle gear</label>
-                <div style={{ height: 30, display: 'flex', alignItems: 'center', fontWeight: 700 }}>{result?.gear ?? '—'}</div>
-              </div>
-              <div className="field">
-                <label>Barometric pressure</label>
-                <div style={{ height: 30, display: 'flex', alignItems: 'center', fontWeight: 700 }}>{setup.baroHpa} hPa</div>
-              </div>
-            </div>
-            <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 4 }}>
-              <Collapsible title="Advanced">
-                <div className="grid-2">
-                  <NumberField label="Baro pressure · hPa" value={setup.baroHpa} onChange={(v) => setSetup({ baroHpa: v })} />
-                  <NumberField label="Drag area Cd·A · m²" value={setup.cdA} onChange={(v) => setSetup({ cdA: v })} step={0.01} />
-                  <NumberField label="Rolling resistance" value={setup.crr} onChange={(v) => setSetup({ crr: v })} step={0.001} />
-                  <div className="field">
-                    <label>Correction</label>
-                    <select className="select" value={setup.correction} onChange={(e) => setSetup({ correction: e.target.value as DynoSetup['correction'] })}>
-                      <option value="none">None (uncorrected)</option>
-                      <option value="SAE">SAE J1349</option>
-                      <option value="DIN">DIN 70020</option>
-                    </select>
-                  </div>
-                </div>
-              </Collapsible>
-            </div>
-          </section>
-
-          <section className="card">
-            <h3 className="card-title">
-              Saved runs <span className="count-badge">tick to compare</span>
-            </h3>
-            <div className="run-list">
-              {runs.map((r) => {
-                const cmpIdx = compare.findIndex((c) => c.id === r.id)
-                return (
-                  <div key={r.id} className={`run-item ${current?.id === r.id ? 'selected' : ''}`} onClick={() => openRun(r)}>
-                    <input
-                      type="checkbox"
-                      checked={cmpIdx >= 0}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={() => toggleCompare(r)}
-                      style={{ accentColor: 'var(--accent)' }}
-                    />
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                    <button
-                      className="icon-btn"
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        await api.deleteRun('dyno', r.id)
-                        setCompare(compare.filter((c) => c.id !== r.id))
-                        refreshRuns()
-                      }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                )
-              })}
-              {!runs.length && <div className="muted small">Captured pulls are saved here automatically.</div>}
-            </div>
-          </section>
-        </aside>
-      )}
-
-      <section className="card content" style={{ gap: 0 }}>
-        <div className="panel-header">
-          <h2>
-            <Gauge size={20} /> Dyno
-          </h2>
-          {current && <span className="log-chip"><b>{current.name}</b></span>}
-          <div className="actions">
-            {current && !saved && (
-              <button className="btn primary" onClick={() => saveRun(current)}>
-                <Save size={13} /> Save run
-              </button>
-            )}
-            <button className="btn" onClick={pngOut} disabled={!result}>
-              <Image size={13} /> Save graph (PNG)
-            </button>
-            <button className="btn" onClick={() => setExpanded(!expanded)}>
-              {expanded ? <Shrink size={13} /> : <Expand size={13} />}
-              {expanded ? 'Restore' : 'Expand'}
-            </button>
-          </div>
-        </div>
-
-        <div className="stat-cards">
-          <div className="stat-card">
-            <div className="label">Engine</div>
-            {result && (
-              <>
-                <div className="value">
-                  {peak(result.peakEngine.kw)}
-                  <small>{units.power}</small>
-                </div>
-                <div className="sub">@ {Math.round(result.peakEngine.rpm)} rpm</div>
-              </>
-            )}
-          </div>
-          <div className="stat-card">
-            <div className="label">Torque</div>
-            {result && (
-              <>
-                <div className="value">
-                  {torqueFromNm(result.peakTorque.nm, units.torque).toFixed(0)}
-                  <small>{units.torque}</small>
-                </div>
-                <div className="sub">@ {Math.round(result.peakTorque.rpm)} rpm</div>
-              </>
-            )}
-          </div>
-          <div className="stat-card">
-            <div className="label">Wheel</div>
-            {result && (
-              <>
-                <div className="value">
-                  {peak(result.peakWheel.kw)}
-                  <small>{units.power}</small>
-                </div>
-                <div className="sub">@ {Math.round(result.peakWheel.rpm)} rpm</div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="info-line">
-          <span>
-            Gear <b>{result?.gear ?? '—'}</b>
-          </span>
-          <span>
-            <b>{(setup.baroHpa / 1000).toFixed(2)}</b> bar
-          </span>
-          <span>
-            <b>{setup.ambientTempC.toFixed(1)}</b> °C
-          </span>
-          <span>
-            pedal ≥ <b>{setup.minPedalPct}%</b>
-          </span>
-          {result && (
-            <span>
-              ρ <b>{result.airDensity.toFixed(3)}</b> kg/m³
-            </span>
-          )}
-          {result && setup.correction !== 'none' && (
-            <span>
-              {setup.correction} CF <b>{result.correctionFactor.toFixed(3)}</b>
-            </span>
-          )}
-        </div>
-
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          {result ? (
+    <div className="page">
+      <div className="page-toolbar">
+        <h1>Dyno</h1>
+        <RunSteps step={step} labels={['Set up', 'Capture a pull', 'Results']} />
+        <span className={`status-line ${arm === 'recording' ? 'running' : armed ? 'armed' : arm === 'done' ? 'done' : ''}`}>
+          {arm === 'idle' && (live ? 'Ready to arm' : 'Connect to arm a live run')}
+          {arm === 'armed' && (
             <>
-              <div className="graph-legend" style={{ paddingLeft: 60 }}>
-                {legend.map((l) => (
-                  <span key={l.label} className="legend-item">
-                    <span className="swatch" style={{ background: l.color }} />
-                    {l.label}
-                  </span>
-                ))}
-              </div>
-              <Chart ref={chart} x={x} xLabel="Engine speed · rpm" xDecimals={0} series={series} scales={scales} tooltip />
+              <span className="dot connecting" /> Armed · floor it above {setup.startRpm} rpm
             </>
-          ) : (
-            <div className="empty" style={{ margin: 'auto', maxWidth: 520 }}>
-              <b>Arm a run</b>, then do a wide-open-throttle pull in one gear (3rd or 4th works best) from below {setup.startRpm} rpm to
-              past {setup.endRpm} rpm. Or <b>analyze a log</b> you already recorded.
-              <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
-                <button className="btn" onClick={analyzeLogFile}>
-                  <FolderOpen size={13} /> Analyze a log…
+          )}
+          {arm === 'recording' && (
+            <>
+              <span className="dot rec" /> Recording pull…
+            </>
+          )}
+          {arm === 'done' && 'Pull captured'}
+        </span>
+        <div className="spacer" />
+        <button className="btn" onClick={analyzeLogFile}>
+          <CsvIcon size={15} /> Analyze a log…
+        </button>
+        <button className={`btn ${armed ? 'danger' : 'primary'}`} onClick={armRun} disabled={!live && !armed}>
+          {armed ? <CloseIcon size={15} /> : <ArmIcon size={15} weight="bold" />}
+          {armed ? 'Disarm' : 'Arm run'}
+        </button>
+      </div>
+
+      <div className="page-body">
+        <div className="page-main">
+          <div className="metrics">
+            <div className="metric hero">
+              <div className="label">
+                <span className="swatch" style={{ background: ENGINE }} /> Peak engine power
+              </div>
+              <div className={`value ${result ? '' : 'placeholder'}`}>
+                {result ? peak(result.peakEngine.kw) : '—'}
+                <small>{units.power}</small>
+              </div>
+              <div className="sub">{result ? `at ${Math.round(result.peakEngine.rpm)} rpm` : ' '}</div>
+            </div>
+            <div className="metric">
+              <div className="label">
+                <span className="swatch" style={{ background: TORQUE }} /> Peak torque
+              </div>
+              <div className={`value ${result ? '' : 'placeholder'}`}>
+                {result ? torqueFromNm(result.peakTorque.nm, units.torque).toFixed(0) : '—'}
+                <small>{units.torque}</small>
+              </div>
+              <div className="sub">{result ? `at ${Math.round(result.peakTorque.rpm)} rpm` : ' '}</div>
+            </div>
+            <div className="metric">
+              <div className="label">
+                <span className="swatch" style={{ background: WHEEL }} /> Peak wheel power
+              </div>
+              <div className={`value ${result ? '' : 'placeholder'}`}>
+                {result ? peak(result.peakWheel.kw) : '—'}
+                <small>{units.power}</small>
+              </div>
+              <div className="sub">{result ? `at ${Math.round(result.peakWheel.rpm)} rpm` : ' '}</div>
+            </div>
+          </div>
+
+          <div className="info-line">
+            <span>
+              Gear <b>{result?.gear ?? '—'}</b>
+            </span>
+            <span>
+              Baro <b>{(setup.baroHpa / 1000).toFixed(2)}</b> bar
+            </span>
+            <span>
+              Outside <b>{setup.ambientTempC.toFixed(1)}</b> °C
+            </span>
+            <span>
+              Pedal ≥ <b>{setup.minPedalPct}%</b>
+            </span>
+            {result && (
+              <span>
+                Air density <b>{result.airDensity.toFixed(3)}</b> kg/m³
+              </span>
+            )}
+            {result && setup.correction !== 'none' && (
+              <span>
+                {setup.correction} correction <b>{result.correctionFactor.toFixed(3)}</b>
+              </span>
+            )}
+          </div>
+
+          <section className="card flex result-chart">
+            <div className="panel-header">
+              <h2 className="ellipsis">{current ? current.name : 'Power and torque'}</h2>
+              <div className="actions">
+                {current && !saved && (
+                  <button className="btn primary sm" onClick={() => saveRun(current)}>
+                    <SaveIcon size={14} /> Save run
+                  </button>
+                )}
+                <button className="btn sm" onClick={pngOut} disabled={!result}>
+                  <ImageIcon size={14} /> Save PNG
+                </button>
+                <button className="btn sm ghost" onClick={() => setExpanded(!expanded)} title={expanded ? 'Show setup and saved runs' : 'Hide setup and saved runs'}>
+                  {expanded ? <ShrinkIcon size={14} /> : <ExpandIcon size={14} />}
+                  {expanded ? 'Restore' : 'Expand'}
                 </button>
               </div>
             </div>
+            {result ? (
+              <>
+                <div className="graph-legend" style={{ paddingLeft: 60 }}>
+                  {legend.map((l) => (
+                    <span key={l.label} className="legend-item">
+                      <span className="swatch" style={{ background: l.color }} />
+                      {l.label}
+                    </span>
+                  ))}
+                </div>
+                <Chart ref={chart} x={x} xLabel="Engine speed · rpm" xDecimals={0} series={series} scales={scales} tooltip />
+              </>
+            ) : (
+              <div className="empty" style={{ margin: 'auto', maxWidth: 540 }}>
+                <b>Arm a run</b>, then do a wide-open-throttle pull in one gear (3rd or 4th works best) from below {setup.startRpm} rpm to past{' '}
+                {setup.endRpm} rpm. Or <b>analyze a log</b> you already recorded.
+                <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
+                  <button className="btn" onClick={analyzeLogFile}>
+                    <CsvIcon size={15} /> Analyze a log…
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {result && result.warnings.length > 0 && (
+            <div className="warning-bar">
+              <WarningIcon size={16} />
+              {result.warnings.join(' · ')}
+            </div>
           )}
+          <div className="warning-bar">
+            <WarningIcon size={16} />
+            Road-dyno figures are estimated from acceleration, not measured on a calibrated dynamometer. Use a flat, closed road. Never run pulls on
+            public streets.
+          </div>
         </div>
 
-        {result && result.warnings.length > 0 && (
-          <div className="warning-bar">
-            <AlertTriangle size={15} />
-            {result.warnings.join(' · ')}
-          </div>
+        {!expanded && (
+          <aside className="inspector">
+            <section className="card">
+              <h3 className="card-title">Setup</h3>
+              <div className="grid-2">
+                <NumberField label="Vehicle mass · kg" value={setup.massKg} onChange={(v) => setSetup({ massKg: v })} step={5} />
+                <NumberField label="Drivetrain loss · %" value={setup.drivetrainLossPct} onChange={(v) => setSetup({ drivetrainLossPct: v })} />
+                <NumberField label="Start RPM" value={setup.startRpm} onChange={(v) => setSetup({ startRpm: v })} step={100} />
+                <NumberField label="End RPM" value={setup.endRpm} onChange={(v) => setSetup({ endRpm: v })} step={100} />
+                <NumberField label="Min pedal · %" value={setup.minPedalPct} onChange={(v) => setSetup({ minPedalPct: v })} />
+                <NumberField label="Smoothing · s" value={setup.smoothingSec} onChange={(v) => setSetup({ smoothingSec: v })} step={0.1} />
+                <NumberField label="Outside temp · °C" value={setup.ambientTempC} onChange={(v) => setSetup({ ambientTempC: v })} step={0.5} />
+                <NumberField label="Humidity · %" value={setup.humidityPct} onChange={(v) => setSetup({ humidityPct: v })} />
+                <div className="field">
+                  <label>Vehicle gear</label>
+                  <div className="readout">{result?.gear ?? '—'}</div>
+                </div>
+                <div className="field">
+                  <label>Barometric pressure</label>
+                  <div className="readout">{setup.baroHpa} hPa</div>
+                </div>
+              </div>
+              <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 4 }}>
+                <Collapsible title="Advanced">
+                  <div className="grid-2">
+                    <NumberField label="Baro pressure · hPa" value={setup.baroHpa} onChange={(v) => setSetup({ baroHpa: v })} />
+                    <NumberField label="Drag area Cd·A · m²" value={setup.cdA} onChange={(v) => setSetup({ cdA: v })} step={0.01} />
+                    <NumberField label="Rolling resistance" value={setup.crr} onChange={(v) => setSetup({ crr: v })} step={0.001} />
+                    <div className="field">
+                      <label>Correction</label>
+                      <select className="select" value={setup.correction} onChange={(e) => setSetup({ correction: e.target.value as DynoSetup['correction'] })}>
+                        <option value="none">None (uncorrected)</option>
+                        <option value="SAE">SAE J1349</option>
+                        <option value="DIN">DIN 70020</option>
+                      </select>
+                    </div>
+                  </div>
+                </Collapsible>
+              </div>
+            </section>
+
+            <section className="card">
+              <h3 className="card-title">
+                Saved runs <span className="count-badge">tick to overlay</span>
+              </h3>
+              <div className="run-list">
+                {runs.map((r) => {
+                  const cmpIdx = compare.findIndex((c) => c.id === r.id)
+                  return (
+                    <div key={r.id} className={`run-item ${current?.id === r.id ? 'selected' : ''}`} onClick={() => openRun(r)}>
+                      <input type="checkbox" checked={cmpIdx >= 0} onClick={(e) => e.stopPropagation()} onChange={() => toggleCompare(r)} />
+                      <span className="ellipsis" style={{ flex: 1 }}>
+                        {r.name}
+                      </span>
+                      <button
+                        className="icon-btn"
+                        title="Delete run"
+                        onClick={async (e) => {
+                          e.stopPropagation()
+                          await api.deleteRun('dyno', r.id)
+                          setCompare(compare.filter((c) => c.id !== r.id))
+                          refreshRuns()
+                        }}
+                      >
+                        <TrashIcon size={14} />
+                      </button>
+                    </div>
+                  )
+                })}
+                {!runs.length && <div className="muted small">Captured pulls are saved here automatically.</div>}
+              </div>
+            </section>
+          </aside>
         )}
-        <div className="warning-bar">
-          <AlertTriangle size={15} />
-          Road-dyno figures are estimated from acceleration, not measured on a calibrated dynamometer. Use a flat, closed road. Never run pulls on public
-          streets.
-        </div>
-      </section>
-    </main>
+      </div>
+    </div>
   )
 }

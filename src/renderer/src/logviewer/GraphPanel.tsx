@@ -1,8 +1,21 @@
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, Expand, FileSpreadsheet, Image, ListChecks, Pin, PinOff, RotateCcw, Shrink, Trash2, Type } from 'lucide-react'
 import type { LogViewerPrefs, UnitPrefs } from '@shared/types'
 import { Chart, type ChartHandle, type ChartRegion, type ChartScale, type ChartSeries } from '../components/Chart'
 import { MenuButton } from '../components/ui'
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ChannelsIcon,
+  CsvIcon,
+  ExpandIcon,
+  ImageIcon,
+  PinIcon,
+  RenameIcon,
+  ResetIcon,
+  ShrinkIcon,
+  TrashIcon,
+  UnpinIcon
+} from '../components/icons'
 import { channelView, fmt } from '../lib/format'
 import { colorAt } from '../lib/colors'
 import type { GraphConfig, SeriesSource } from './types'
@@ -100,59 +113,67 @@ export const GraphPanel = forwardRef<GraphPanelHandle, Props>(function GraphPane
 
   return (
     <div className={`graph ${p.fullscreen ? 'fullscreen' : ''}`}>
-      <div className="graph-title">
-        {renaming ? (
-          <input
-            autoFocus
-            defaultValue={p.config.title}
-            onBlur={(e) => {
-              set({ title: e.target.value.trim() || p.config.title })
-              setRenaming(false)
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-              if (e.key === 'Escape') setRenaming(false)
-            }}
-          />
-        ) : (
-          <span onDoubleClick={() => setRenaming(true)}>{p.config.title}</span>
-        )}
-        {p.config.pinned && <Pin size={14} className="dim" />}
-      </div>
-      <div className="graph-toolbar">
-        <button className="btn sm" onClick={() => setRenaming(true)}>
-          <Type size={12} /> Rename graph
-        </button>
+      <div className="graph-head">
+        <div className="graph-title">
+          {renaming ? (
+            <input
+              autoFocus
+              defaultValue={p.config.title}
+              onBlur={(e) => {
+                set({ title: e.target.value.trim() || p.config.title })
+                setRenaming(false)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                if (e.key === 'Escape') setRenaming(false)
+              }}
+            />
+          ) : (
+            <span onDoubleClick={() => setRenaming(true)} title="Double-click to rename">
+              {p.config.title}
+            </span>
+          )}
+          {p.config.pinned && <PinIcon size={14} weight="fill" className="dim" />}
+        </div>
         <button className="btn sm" onClick={p.onEditChannels}>
-          <ListChecks size={12} /> Edit channels
+          <ChannelsIcon size={14} /> Channels
         </button>
         <MenuButton
           label="Save"
-          icon={<Image size={12} />}
+          icon={<ImageIcon size={14} />}
           items={[
-            { label: 'Graph as PNG…', icon: <Image size={14} />, onClick: p.onSavePng },
-            { label: 'Visible range as CSV…', icon: <FileSpreadsheet size={14} />, onClick: p.onExportCsv, disabled: !p.onExportCsv }
+            { label: 'Graph as PNG…', icon: <ImageIcon size={15} />, onClick: p.onSavePng },
+            { label: 'Visible range as CSV…', icon: <CsvIcon size={15} />, onClick: p.onExportCsv, disabled: !p.onExportCsv }
           ]}
         />
-        <div className="spacer" />
-        <button className="icon-btn" title={p.config.pinned ? 'Unpin graph' : 'Pin graph position'} onClick={() => set({ pinned: !p.config.pinned })}>
-          {p.config.pinned ? <PinOff size={15} /> : <Pin size={15} />}
-        </button>
-        <button className="icon-btn" title="Move up" disabled={p.config.pinned || p.index === 0} onClick={() => p.onMove(-1)}>
-          <ArrowUp size={15} />
-        </button>
-        <button className="icon-btn" title="Move down" disabled={p.config.pinned || p.index === p.count - 1} onClick={() => p.onMove(1)}>
-          <ArrowDown size={15} />
-        </button>
-        <button className="icon-btn" title={p.fullscreen ? 'Exit fullscreen' : 'Fullscreen'} onClick={p.onToggleFullscreen}>
-          {p.fullscreen ? <Shrink size={15} /> : <Expand size={15} />}
-        </button>
-        <button className="icon-btn" title="Remove graph" disabled={p.config.pinned || p.count <= 1} onClick={p.onRemove}>
-          <Trash2 size={15} />
-        </button>
-        <button className="btn sm ghost" onClick={() => set({ ranges: {} })} disabled={!Object.keys(p.config.ranges).length}>
-          <RotateCcw size={12} /> Reset Y
-        </button>
+        <div className="graph-tools">
+          <button className="icon-btn" title="Rename graph" onClick={() => setRenaming(true)}>
+            <RenameIcon size={16} />
+          </button>
+          <button
+            className="icon-btn"
+            title="Reset Y scales"
+            disabled={!Object.keys(p.config.ranges).length}
+            onClick={() => set({ ranges: {} })}
+          >
+            <ResetIcon size={16} />
+          </button>
+          <button className={`icon-btn ${p.config.pinned ? 'on' : ''}`} title={p.config.pinned ? 'Unpin graph' : 'Pin graph position'} onClick={() => set({ pinned: !p.config.pinned })}>
+            {p.config.pinned ? <UnpinIcon size={16} /> : <PinIcon size={16} />}
+          </button>
+          <button className="icon-btn" title="Move up" disabled={p.config.pinned || p.index === 0} onClick={() => p.onMove(-1)}>
+            <ArrowUpIcon size={16} />
+          </button>
+          <button className="icon-btn" title="Move down" disabled={p.config.pinned || p.index === p.count - 1} onClick={() => p.onMove(1)}>
+            <ArrowDownIcon size={16} />
+          </button>
+          <button className="icon-btn" title={p.fullscreen ? 'Exit fullscreen' : 'Fullscreen'} onClick={p.onToggleFullscreen}>
+            {p.fullscreen ? <ShrinkIcon size={16} /> : <ExpandIcon size={16} />}
+          </button>
+          <button className="icon-btn" title="Remove graph" disabled={p.config.pinned || p.count <= 1} onClick={p.onRemove}>
+            <TrashIcon size={16} />
+          </button>
+        </div>
       </div>
       <div className="graph-legend">
         {series.map((s, i) => (
@@ -162,7 +183,7 @@ export const GraphPanel = forwardRef<GraphPanelHandle, Props>(function GraphPane
             <span className="val">{valueAt(s)}</span>
           </span>
         ))}
-        {!series.length && <span className="dim">No channels. Use “Edit channels” to add up to 5.</span>}
+        {!series.length && <span className="dim">No channels yet. Use “Channels” to add up to 5.</span>}
       </div>
       <Chart
         ref={chart}

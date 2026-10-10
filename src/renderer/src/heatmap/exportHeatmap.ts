@@ -39,24 +39,25 @@ export function heatmapPng(model: HeatmapModel, title: string, subtitle: string)
   canvas.height = h * dpr
   const ctx = canvas.getContext('2d')!
   ctx.scale(dpr, dpr)
-  const font = (size: number, weight = 400): string => `${weight} ${size}px "Segoe UI", -apple-system, system-ui, sans-serif`
-  ctx.fillStyle = '#0b131c'
+  const font = (size: number, weight = 400): string => `${weight} ${size}px Inter, "Segoe UI", -apple-system, system-ui, sans-serif`
+  ctx.fillStyle = '#0c0c0d'
   ctx.fillRect(0, 0, w, h)
-  ctx.fillStyle = '#5fb4ff'
-  ctx.font = font(16, 700)
+  ctx.fillStyle = '#ededee'
+  ctx.font = font(16, 600)
   ctx.fillText(title, 16, 26)
-  ctx.fillStyle = '#8296ab'
+  ctx.fillStyle = '#a1a1a9'
   ctx.font = font(11)
   ctx.fillText(subtitle, 16, 44)
   ctx.textAlign = 'right'
-  ctx.fillStyle = '#3e5268'
-  ctx.fillText('Boostline', w - 16, 26)
+  ctx.fillStyle = '#ffad33'
+  ctx.font = font(11, 600)
+  ctx.fillText('boostline', w - 16, 26)
 
   ctx.textBaseline = 'middle'
   for (let r = 0; r < rows; r++) {
     const y = top + (rows - 1 - r) * cellH
     ctx.textAlign = 'right'
-    ctx.fillStyle = '#8296ab'
+    ctx.fillStyle = '#8a8a93'
     ctx.font = font(10)
     ctx.fillText(fmtEdge(yEdges[r]), left - 8, y + cellH - 2)
     for (let c = 0; c < cols; c++) {
@@ -68,10 +69,10 @@ export function heatmapPng(model: HeatmapModel, title: string, subtitle: string)
         ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2)
         ctx.fillStyle = fg
         ctx.textAlign = 'center'
-        ctx.font = font(11, 600)
+        ctx.font = font(11, 500)
         ctx.fillText(fmtVal(v, model.decimals), x + cellW / 2, y + cellH / 2)
       } else {
-        ctx.strokeStyle = '#1d2c3d'
+        ctx.strokeStyle = '#26262b'
         ctx.setLineDash([3, 3])
         ctx.strokeRect(x + 1.5, y + 1.5, cellW - 3, cellH - 3)
         ctx.setLineDash([])
@@ -79,7 +80,7 @@ export function heatmapPng(model: HeatmapModel, title: string, subtitle: string)
     }
   }
   ctx.textAlign = 'center'
-  ctx.fillStyle = '#8296ab'
+  ctx.fillStyle = '#8a8a93'
   ctx.font = font(10)
   for (let c = 0; c <= cols; c++) ctx.fillText(fmtEdge(xEdges[c]), left + c * cellW, top + rows * cellH + 12)
   ctx.font = font(11)
@@ -99,7 +100,7 @@ export function heatmapPng(model: HeatmapModel, title: string, subtitle: string)
   stops.forEach((s, i) => grad.addColorStop(stops.length > 1 ? i / (stops.length - 1) : 0, s))
   ctx.fillStyle = grad
   ctx.fillRect(lx, ly, lw, 10)
-  ctx.fillStyle = '#8296ab'
+  ctx.fillStyle = '#8a8a93'
   const [lo, hi] = model.scale.kind === 'diverging' ? [-model.scale.limit, model.scale.limit] : [model.scale.min, model.scale.max]
   ctx.textAlign = 'right'
   ctx.fillText(fmtVal(lo, model.decimals), lx - 6, ly + 5)

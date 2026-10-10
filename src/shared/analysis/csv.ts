@@ -4,7 +4,7 @@
 //   # app=Boostline
 //   # started=2026-05-01T10:00:00.000Z
 //   # ids=engine.rpm,boost.actual            ← channel ids of the data columns, in order
-//   Time [s],Engine RPM [rpm],Boost Pressure · Actual [bar]
+//   Time [s],Engine speed [rpm],Boost pressure [bar]
 //   0.000,850,1.012
 //
 // The parser also reads foreign logs (MHD, bootmod3, generic loggers): it

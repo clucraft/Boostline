@@ -20,11 +20,11 @@ export interface DerivedInfo {
 
 export const DERIVED: Readonly<Record<string, DerivedInfo>> = {
   'derived.lambda_error': {
-    id: 'derived.lambda_error', name: 'Lambda error · actual − target', unit: 'λ', quantity: 'lambda', decimals: 3, badSign: 1,
+    id: 'derived.lambda_error', name: 'Lambda error (actual − target)', unit: 'λ', quantity: 'lambda', decimals: 3, badSign: 1,
     description: 'Positive = leaner than requested, negative = richer.'
   },
   'derived.boost_error': {
-    id: 'derived.boost_error', name: 'Boost error · actual − target', unit: 'bar', quantity: 'pressure', decimals: 3, badSign: 1,
+    id: 'derived.boost_error', name: 'Boost error (actual − target)', unit: 'bar', quantity: 'pressure', decimals: 3, badSign: 1,
     description: 'Positive = overboost, negative = under target (normal while spooling).'
   },
   'derived.rail_drop': {
@@ -32,11 +32,11 @@ export const DERIVED: Readonly<Record<string, DerivedInfo>> = {
     description: 'How far rail pressure falls below its target, in % of the target. Large drops mean the high-pressure pump is at its limit.'
   },
   'derived.timing_corr.avg': {
-    id: 'derived.timing_corr.avg', name: 'Timing correction · cylinder average (beta)', unit: '°CRK', quantity: 'angle', decimals: 2, badSign: -1, beta: true,
+    id: 'derived.timing_corr.avg', name: 'Timing correction, cylinder average (beta)', unit: '°CRK', quantity: 'angle', decimals: 2, badSign: -1, beta: true,
     description: 'How far cylinders run below the most-advanced cylinder, after removing each cylinder’s normal offset. Detects cylinder-specific pulls; a uniform retard on all cylinders is not visible.'
   },
   'derived.timing_corr.worst': {
-    id: 'derived.timing_corr.worst', name: 'Timing correction · worst cylinder (beta)', unit: '°CRK', quantity: 'angle', decimals: 2, badSign: -1, beta: true,
+    id: 'derived.timing_corr.worst', name: 'Timing correction, worst cylinder (beta)', unit: '°CRK', quantity: 'angle', decimals: 2, badSign: -1, beta: true,
     description: 'The largest correction of any cylinder at that moment (see cylinder average).'
   }
 }
@@ -148,7 +148,7 @@ export function withDerivedChannels(log: LogData): { log: LogData; derived: Deri
       const info: DerivedInfo = {
         ...DERIVED['derived.timing_corr.avg'],
         id: `derived.timing_corr.cyl${c + 1}`,
-        name: `Timing correction · Cyl ${c + 1} (beta)`
+        name: `Timing correction cyl ${c + 1} (beta)`
       }
       add(info, data)
     })

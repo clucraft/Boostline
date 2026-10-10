@@ -1,26 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  ChevronLeft,
-  ChevronRight,
-  Expand,
-  FileSpreadsheet,
-  Flag,
-  FolderOpen,
-  Gauge,
-  GitCompare,
-  Image,
-  LayoutGrid,
-  Pause,
-  Play,
-  Plus,
-  Radio,
-  Save,
-  Search,
-  Shrink,
-  X,
-  ZoomOut
-} from 'lucide-react'
 import type { LogData, WotSegment } from '@shared/types'
+import type { OpenedFile } from '@shared/ipc'
 import { MAX_GRAPHS } from '@shared/catalog'
 import { parseLogCsv, serializeLogCsv } from '@shared/analysis/csv'
 import { detectWotSegments } from '@shared/analysis/wot'
@@ -28,6 +8,28 @@ import { api, isOnline, useApp } from '../store'
 import { liveBuffer } from '../lib/liveBuffer'
 import { Menu, MenuButton, PromptModal, type MenuItem } from '../components/ui'
 import type { ChartRegion } from '../components/Chart'
+import {
+  AxesIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  CloseIcon,
+  CompareIcon,
+  CsvIcon,
+  DragIcon,
+  DynoIcon,
+  ExpandIcon,
+  FolderIcon,
+  GraphIcon,
+  ImageIcon,
+  PauseIcon,
+  PlayIcon,
+  PlusIcon,
+  SaveIcon,
+  SearchIcon,
+  ShrinkIcon,
+  TilesIcon,
+  ZoomOutIcon
+} from '../components/icons'
 import { GraphPanel, type GraphPanelHandle } from './GraphPanel'
 import { EditChannelsModal } from './EditChannelsModal'
 import { HeatmapView } from '../heatmap/HeatmapView'
@@ -40,7 +42,26 @@ const DEFAULT_GRAPHS = (): GraphConfig[] => [
 
 const LIVE_FPS_MS = 66
 
-export function LogViewer({ expanded, onToggleExpand }: { expanded: boolean; onToggleExpand: () => void }) {
+/** Request from outside (e.g. the log library) to show a file. */
+export interface OpenRequest {
+  file: OpenedFile
+  nonce: number
+}
+
+export function LogViewer({
+  mode,
+  expanded,
+  onToggleExpand,
+  openRequest,
+  onLogChange
+}: {
+  /** 'live' graphs the stream from the car; 'log' shows recorded log files. */
+  mode: 'live' | 'log'
+  expanded: boolean
+  onToggleExpand: () => void
+  openRequest?: OpenRequest | null
+  onLogChange?: (log: LogData | null) => void
+}) {
   const settings = useApp((s) => s.settings)!
   const channelMap = useApp((s) => s.channelMap)
   const channels = useApp((s) => s.channels)
@@ -56,7 +77,7 @@ export function LogViewer({ expanded, onToggleExpand }: { expanded: boolean; onT
   const [xRange, setXRange] = useState<[number, number] | null>(null)
   const [wotIdx, setWotIdx] = useState(-1)
   const [view, setView] = useState<'graphs' | 'heatmap'>('graphs')
-  /** Moment picked from a heatmap cell, shaded orange in the graphs. */
+  /** Moment picked from a heatmap cell, shaded in the graphs. */
   const [highlight, setHighlight] = useState<[number, number] | null>(null)
   const [fullscreen, setFullscreen] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
@@ -65,19 +86,19 @@ export function LogViewer({ expanded, onToggleExpand }: { expanded: boolean; onT
   const [liveSource, setLiveSource] = useState<SeriesSource | null>(null)
   const panels = useRef(new Map<string, GraphPanelHandle | null>())
 
-  const mode: 'live' | 'log' = log ? 'log' : 'live'
+  const live = mode === 'live'
   const allIds = useMemo(() => [...new Set(graphs.flatMap((g) => g.channelIds))], [graphs])
   const allKey = allIds.join('|')
 
   // Live graph channels must be sampled by the main process too.
   useEffect(() => {
-    requestStream('logviewer', mode === 'live' ? allIds : [])
+    if (live) requestStream('livegraphs', allIds)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, allKey, requestStream])
+  }, [live, allKey, requestStream])
 
   // Live mode: poll the ring buffer at ~15 fps.
   useEffect(() => {
-    if (mode !== 'live' || paused) return
+    if (!live || paused) return
     let raf = 0
     let seen = -1
     let last = 0
@@ -93,12 +114,13 @@ export function LogViewer({ expanded, onToggleExpand }: { expanded: boolean; onT
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [mode, paused, allKey, settings.logViewer.liveWindowSec])
+  }, [live, paused, allKey, settings.logViewer.liveWindowSec])
 
   const source: SeriesSource = useMemo(() => {
     if (log) return logSource(log, channelMap, compare ?? undefined)
-    return liveSource ?? { x: [], a: () => undefined, defs: channelMap }
-  }, [log, compare, liveSource, channelMap])
+    if (live && liveSource) return liveSource
+    return { x: [], a: () => undefined, defs: channelMap }
+  }, [log, live, compare, liveSource, channelMap])
 
   const segments: WotSegment[] = useMemo(() => (log ? detectWotSegments(log) : []), [log])
 
@@ -107,14 +129,14 @@ export function LogViewer({ expanded, onToggleExpand }: { expanded: boolean; onT
       ...segments.map((s, i) => ({
         from: s.start,
         to: s.end,
-        color: i === wotIdx ? 'rgba(31, 191, 117, 0.16)' : 'rgba(31, 191, 117, 0.06)'
+        color: i === wotIdx ? 'rgba(255, 173, 51, 0.075)' : 'rgba(255, 173, 51, 0.035)'
       })),
-      ...(highlight ? [{ from: highlight[0], to: highlight[1], color: 'rgba(255, 166, 48, 0.18)' }] : [])
+      ...(highlight ? [{ from: highlight[0], to: highlight[1], color: 'rgba(56, 189, 248, 0.2)' }] : [])
     ],
     [segments, wotIdx, highlight]
   )
 
-  const liveFollowing = mode === 'live' && !paused
+  const liveFollowing = live && !paused
   const effectiveRange: [number, number] | null = liveFollowing
     ? source.x.length
       ? [Math.max(source.x[0], source.x[source.x.length - 1] - settings.logViewer.liveWindowSec), source.x[source.x.length - 1]]
@@ -129,6 +151,7 @@ export function LogViewer({ expanded, onToggleExpand }: { expanded: boolean; onT
 
   const showLog = (next: LogData): void => {
     setLog(next)
+    onLogChange?.(next)
     setCompare(null)
     setXRange(null)
     setWotIdx(-1)
@@ -152,6 +175,11 @@ export function LogViewer({ expanded, onToggleExpand }: { expanded: boolean; onT
     }
   }
 
+  useEffect(() => {
+    if (openRequest) loadLog(openRequest.file.text, openRequest.file.name, openRequest.file.path)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openRequest])
+
   const openLog = async (): Promise<void> => {
     const f = await api.openLogDialog()
     if (f) loadLog(f.text, f.name, f.path)
@@ -171,19 +199,14 @@ export function LogViewer({ expanded, onToggleExpand }: { expanded: boolean; onT
     }
   }
 
-  const recentMenu = async (): Promise<MenuItem[]> => {
-    const logs = (await api.listLogs()).slice(0, 8)
-    return logs.map((l) => ({
-      label: l.name,
-      icon: <FileSpreadsheet size={14} />,
-      onClick: async () => {
-        const f = await api.readFile(l.path)
-        loadLog(f.text, f.name, f.path)
-      }
-    }))
+  const closeLog = (): void => {
+    setLog(null)
+    onLogChange?.(null)
+    setCompare(null)
+    setXRange(null)
+    setWotIdx(-1)
+    setHighlight(null)
   }
-  const [recent, setRecent] = useState<MenuItem[]>([])
-  const refreshRecent = (): void => void recentMenu().then(setRecent)
 
   const exportRange = async (range: [number, number] | null): Promise<void> => {
     if (!log) return
@@ -219,18 +242,10 @@ export function LogViewer({ expanded, onToggleExpand }: { expanded: boolean; onT
   const jumpTo = (target: LogData, span: HeatmapSpan): void => {
     if (target !== log) showLog(target)
     const pad = Math.max(1.5, (span.end - span.start) * 0.6)
+    setWotIdx(-1)
     setView('graphs')
     setXRange([span.start - pad, span.end + pad])
     setHighlight([span.start, span.end])
-  }
-
-  const backToLive = (): void => {
-    setHighlight(null)
-    setLog(null)
-    setCompare(null)
-    setXRange(null)
-    setWotIdx(-1)
-    setPaused(false)
   }
 
   // --------------------------------------------------------------- graphs
@@ -265,7 +280,7 @@ export function LogViewer({ expanded, onToggleExpand }: { expanded: boolean; onT
     toast(`Layout “${name}” saved`, 'success')
   }
   const layoutItems: MenuItem[] = presets.layouts.length
-    ? presets.layouts.map((l) => ({ label: l.name, icon: <LayoutGrid size={14} />, onClick: () => applyLayout(l.name) }))
+    ? presets.layouts.map((l) => ({ label: l.name, icon: <TilesIcon size={15} />, onClick: () => applyLayout(l.name) }))
     : [{ label: 'No saved layouts yet', disabled: true }]
 
   const editingGraph = graphs.find((g) => g.key === editing)
@@ -276,20 +291,24 @@ export function LogViewer({ expanded, onToggleExpand }: { expanded: boolean; onT
   const contextItems = (graphKey: string, at: number | null): MenuItem[] => {
     const segIdx = at === null ? -1 : segments.findIndex((s) => at >= s.start && at <= s.end)
     return [
-      { label: 'Zoom to fit', icon: <ZoomOut size={14} />, onClick: () => setXRange(null), disabled: liveFollowing },
+      { label: 'Zoom to fit', icon: <ZoomOutIcon size={15} />, onClick: () => setXRange(null), disabled: liveFollowing },
       ...(segIdx >= 0
         ? [
-            { label: `Zoom to WOT pull ${segIdx + 1}`, icon: <Search size={14} />, onClick: () => goWot(segIdx) },
-            { label: 'Analyze this pull on Dyno', icon: <Gauge size={14} />, onClick: () => sendTo('dyno', segments[segIdx]) },
-            { label: 'Export this pull as CSV…', icon: <FileSpreadsheet size={14} />, onClick: () => exportRange([segments[segIdx].start, segments[segIdx].end]) }
+            { label: `Zoom to WOT pull ${segIdx + 1}`, icon: <SearchIcon size={15} />, onClick: () => goWot(segIdx) },
+            { label: 'Analyze this pull on Dyno', icon: <DynoIcon size={15} />, onClick: () => sendTo('dyno', segments[segIdx]) },
+            { label: 'Export this pull as CSV…', icon: <CsvIcon size={15} />, onClick: () => exportRange([segments[segIdx].start, segments[segIdx].end]) }
           ]
         : []),
       { separator: true, label: '' },
-      { label: 'Export visible range as CSV…', icon: <FileSpreadsheet size={14} />, onClick: () => exportRange(xRange), disabled: !log },
-      { label: 'Save graph as PNG…', icon: <Image size={14} />, onClick: () => savePng(graphKey) },
-      { label: fullscreen === graphKey ? 'Exit fullscreen' : 'Fullscreen', icon: <Expand size={14} />, onClick: () => setFullscreen(fullscreen === graphKey ? null : graphKey) },
-      { label: 'Edit channels…', icon: <LayoutGrid size={14} />, onClick: () => setEditing(graphKey) },
-      ...(mode === 'live' ? [{ label: paused ? 'Resume live' : 'Pause', icon: paused ? <Play size={14} /> : <Pause size={14} />, onClick: () => setPaused(!paused) }] : [])
+      { label: 'Export visible range as CSV…', icon: <CsvIcon size={15} />, onClick: () => exportRange(xRange), disabled: !log },
+      { label: 'Save graph as PNG…', icon: <ImageIcon size={15} />, onClick: () => savePng(graphKey) },
+      {
+        label: fullscreen === graphKey ? 'Exit fullscreen' : 'Fullscreen',
+        icon: <ExpandIcon size={15} />,
+        onClick: () => setFullscreen(fullscreen === graphKey ? null : graphKey)
+      },
+      { label: 'Edit channels…', icon: <TilesIcon size={15} />, onClick: () => setEditing(graphKey) },
+      ...(live ? [{ label: paused ? 'Resume graphs' : 'Freeze graphs', icon: paused ? <PlayIcon size={15} /> : <PauseIcon size={15} />, onClick: () => setPaused(!paused) }] : [])
     ]
   }
 
@@ -298,163 +317,177 @@ export function LogViewer({ expanded, onToggleExpand }: { expanded: boolean; onT
   return (
     <section className="card logviewer">
       <div className="panel-header">
-        <h2>
-          <Search size={19} /> Log Viewer
-        </h2>
-        <div className="segmented">
-          <button className={view === 'graphs' ? 'active' : ''} onClick={() => setView('graphs')}>
-            Graphs
-          </button>
-          <button className={view === 'heatmap' ? 'active' : ''} onClick={() => setView('heatmap')}>
-            Heatmap
-          </button>
-        </div>
-        {log && (
-          <span className="log-chip">
-            <FileSpreadsheet size={13} />
-            <b title={log.path}>{log.name}</b>· {duration(log).toFixed(1)} s · {log.channels.length} ch
-          </span>
-        )}
-        {compare && (
-          <span className="log-chip">
-            <GitCompare size={13} />
-            <b>{compare.log.name}</b>
-            offset
-            <input
-              className="input"
-              style={{ width: 70, height: 22 }}
-              type="number"
-              step={0.1}
-              value={compare.offset}
-              onChange={(e) => setCompare({ ...compare, offset: parseFloat(e.target.value) || 0 })}
-            />
-            s
-            <button className="icon-btn" onClick={() => setCompare(null)} title="Stop comparing">
-              <X size={13} />
-            </button>
-          </span>
+        {live ? (
+          <h2>
+            <GraphIcon size={18} /> Live graphs
+          </h2>
+        ) : (
+          <>
+            <div className="segmented">
+              <button className={view === 'graphs' ? 'active' : ''} onClick={() => setView('graphs')}>
+                Graphs
+              </button>
+              <button className={view === 'heatmap' ? 'active' : ''} onClick={() => setView('heatmap')}>
+                Heatmap
+              </button>
+            </div>
+            {log && (
+              <span className="log-chip">
+                <CsvIcon size={15} />
+                <b title={log.path}>{log.name}</b>
+                <span className="mono">
+                  {duration(log).toFixed(1)} s · {log.channels.length} ch
+                </span>
+                <button className="icon-btn" onClick={closeLog} title="Close log">
+                  <CloseIcon size={13} />
+                </button>
+              </span>
+            )}
+            {compare && (
+              <span className="log-chip">
+                <CompareIcon size={15} />
+                <b>{compare.log.name}</b>
+                offset
+                <input
+                  className="input"
+                  style={{ width: 74, height: 26 }}
+                  type="number"
+                  step={0.1}
+                  value={compare.offset}
+                  onChange={(e) => setCompare({ ...compare, offset: parseFloat(e.target.value) || 0 })}
+                />
+                s
+                <button className="icon-btn" onClick={() => setCompare(null)} title="Stop comparing">
+                  <CloseIcon size={13} />
+                </button>
+              </span>
+            )}
+          </>
         )}
         <div className="actions">
-          {mode === 'live' ? (
-            <button className={`btn ${paused ? 'green' : 'primary'}`} onClick={() => setPaused(!paused)} disabled={!online && !paused}>
-              {paused ? <Play size={12} fill="currentColor" /> : <Pause size={12} fill="currentColor" />}
-              {paused ? 'Resume' : 'Pause'}
+          {live ? (
+            <button className="btn" onClick={() => setPaused(!paused)} disabled={!online && !paused}>
+              {paused ? <PlayIcon size={14} weight="fill" /> : <PauseIcon size={14} weight="fill" />}
+              {paused ? 'Resume graphs' : 'Freeze graphs'}
             </button>
           ) : (
-            <button className="btn green" onClick={backToLive}>
-              <Radio size={13} /> Live
-            </button>
-          )}
-          <span onMouseEnter={refreshRecent}>
             <MenuButton
-              label="Open log"
+              label="Open"
               className="btn"
-              icon={<FolderOpen size={13} />}
+              icon={<FolderIcon size={15} />}
               items={() => [
-                { label: 'Open log file…', icon: <FolderOpen size={14} />, onClick: openLog },
-                { label: 'Compare with another log…', icon: <GitCompare size={14} />, onClick: openCompare, disabled: !log },
-                { separator: true, label: '' },
-                { label: 'Recent logs', heading: true },
-                ...(recent.length ? recent : [{ label: 'No logs recorded yet', disabled: true }])
+                { label: 'Open log file…', icon: <FolderIcon size={15} />, onClick: openLog },
+                { label: 'Compare with another log…', icon: <CompareIcon size={15} />, onClick: openCompare, disabled: !log }
               ]}
             />
-          </span>
-          <button className="btn" onClick={onToggleExpand}>
-            {expanded ? <Shrink size={13} /> : <Expand size={13} />}
+          )}
+          <button className="btn ghost" onClick={onToggleExpand} title={expanded ? 'Restore' : 'Give the graphs the whole page'}>
+            {expanded ? <ShrinkIcon size={15} /> : <ExpandIcon size={15} />}
             {expanded ? 'Restore' : 'Expand'}
           </button>
         </div>
       </div>
 
-      {view === 'heatmap' ? (
+      {view === 'heatmap' && !live ? (
         <HeatmapView log={log} range={xRange} onJump={jumpTo} onOpenLog={openLog} />
       ) : (
         <>
           {log && segments.length > 0 && (
-            <div className="row" style={{ marginBottom: 10 }}>
+            <div className="pull-bar">
               <div className="wot-nav">
-                <Flag size={13} /> WOT pulls
-                <button className="icon-btn" onClick={() => goWot(wotIdx <= 0 ? segments.length - 1 : wotIdx - 1)}>
-                  <ChevronLeft size={15} />
+                WOT pulls
+                <button className="icon-btn" onClick={() => goWot(wotIdx <= 0 ? segments.length - 1 : wotIdx - 1)} title="Previous pull">
+                  <CaretLeftIcon size={14} weight="bold" />
                 </button>
-                {wotIdx >= 0 ? `${wotIdx + 1} / ${segments.length}` : `${segments.length} found`}
-                <button className="icon-btn" onClick={() => goWot((wotIdx + 1) % segments.length)}>
-                  <ChevronRight size={15} />
+                <span className="mono">{wotIdx >= 0 ? `${wotIdx + 1} / ${segments.length}` : `${segments.length} found`}</span>
+                <button className="icon-btn" onClick={() => goWot((wotIdx + 1) % segments.length)} title="Next pull">
+                  <CaretRightIcon size={14} weight="bold" />
                 </button>
               </div>
               {wotIdx >= 0 && (
                 <>
-                  <span className="muted small">
+                  <span className="muted small mono">
                     {segments[wotIdx].start.toFixed(1)}–{segments[wotIdx].end.toFixed(1)} s
                     {segments[wotIdx].gear ? ` · gear ${segments[wotIdx].gear}` : ''}
                     {segments[wotIdx].peakRpm ? ` · peak ${Math.round(segments[wotIdx].peakRpm!)} rpm` : ''}
                   </span>
                   <button className="btn sm" onClick={() => sendTo('dyno', segments[wotIdx])}>
-                    <Gauge size={12} /> Dyno this pull
+                    <DynoIcon size={14} /> Dyno this pull
                   </button>
                   <button className="btn sm" onClick={() => exportRange([segments[wotIdx].start, segments[wotIdx].end])}>
-                    <FileSpreadsheet size={12} /> Export pull
+                    <CsvIcon size={14} /> Export pull
                   </button>
                 </>
               )}
               <button className="btn sm ghost" onClick={() => sendTo('drag')}>
-                <Flag size={12} /> Drag timing from log
+                <DragIcon size={14} /> Drag timing from log
               </button>
             </div>
           )}
 
           <div className="graphs">
-            {graphs.map((g, i) => (
-              <GraphPanel
-                key={g.key}
-                ref={(h) => void panels.current.set(g.key, h)}
-                config={g}
-                index={i}
-                count={graphs.length}
-                source={source}
-                compareLabel={compare?.log.name}
-                units={settings.units}
-                prefs={settings.logViewer}
-                xRange={effectiveRange}
-                onXRange={liveFollowing ? undefined : onXRange}
-                interactive={!liveFollowing}
-                regions={regions}
-                fullscreen={fullscreen === g.key}
-                live={mode === 'live'}
-                onChange={updateGraph}
-                onRemove={() => removeGraph(g.key)}
-                onMove={(d) => moveGraph(g.key, d)}
-                onToggleFullscreen={() => setFullscreen(fullscreen === g.key ? null : g.key)}
-                onEditChannels={() => setEditing(g.key)}
-                onExportCsv={log ? () => exportRange(xRange) : undefined}
-                onSavePng={() => savePng(g.key)}
-                onContextMenu={(e, at) => setCtx({ x: e.clientX, y: e.clientY, graph: g.key, at })}
-              />
-            ))}
-            {mode === 'live' && !online && !log && (
-              <div className="empty">
-                Live graphs fill in once connected. Or <b>Open log</b> to review a recording (Boostline, MHD, bootmod3 and generic CSV logs work).
+            {(live || log) &&
+              graphs.map((g, i) => (
+                <GraphPanel
+                  key={g.key}
+                  ref={(h) => void panels.current.set(g.key, h)}
+                  config={g}
+                  index={i}
+                  count={graphs.length}
+                  source={source}
+                  compareLabel={compare?.log.name}
+                  units={settings.units}
+                  prefs={settings.logViewer}
+                  xRange={effectiveRange}
+                  onXRange={liveFollowing ? undefined : onXRange}
+                  interactive={!liveFollowing}
+                  regions={regions}
+                  fullscreen={fullscreen === g.key}
+                  live={live}
+                  onChange={updateGraph}
+                  onRemove={() => removeGraph(g.key)}
+                  onMove={(d) => moveGraph(g.key, d)}
+                  onToggleFullscreen={() => setFullscreen(fullscreen === g.key ? null : g.key)}
+                  onEditChannels={() => setEditing(g.key)}
+                  onExportCsv={log ? () => exportRange(xRange) : undefined}
+                  onSavePng={() => savePng(g.key)}
+                  onContextMenu={(e, at) => setCtx({ x: e.clientX, y: e.clientY, graph: g.key, at })}
+                />
+              ))}
+            {live && !online && (
+              <div className="empty">Live graphs fill in once connected. Recorded logs open in Analyze.</div>
+            )}
+            {!live && !log && (
+              <div className="empty" style={{ margin: 'auto', maxWidth: 520 }}>
+                Pick a log from the library, or open a file. Boostline, MHD, bootmod3 and generic CSV logs work.
+                <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
+                  <button className="btn" onClick={openLog}>
+                    <FolderIcon size={15} /> Open log file…
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="viewer-footer">
-            <button className="btn sm" onClick={addGraph} disabled={graphs.length >= MAX_GRAPHS}>
-              <Plus size={12} /> Add graph
-            </button>
-            <MenuButton label="Open layout" icon={<LayoutGrid size={12} />} items={layoutItems} />
-            <MenuButton
-              label="Save"
-              icon={<Save size={12} />}
-              items={[
-                { label: 'Save layout as…', icon: <LayoutGrid size={14} />, onClick: () => setSavingLayout(true) },
-                { label: 'Export visible range as CSV…', icon: <FileSpreadsheet size={14} />, onClick: () => exportRange(xRange), disabled: !log }
-              ]}
-            />
-            <span className="hint">
-              {api.platform === 'darwin' ? '⌘+scroll or pinch: zoom' : 'Ctrl+scroll: zoom'} · Shift+scroll: pan · drag: zoom to range · double-click: reset
-            </span>
-          </div>
+          {(live || log) && (
+            <div className="viewer-footer">
+              <button className="btn sm" onClick={addGraph} disabled={graphs.length >= MAX_GRAPHS}>
+                <PlusIcon size={13} weight="bold" /> Add graph
+              </button>
+              <MenuButton label="Layouts" icon={<AxesIcon size={14} />} items={layoutItems} />
+              <MenuButton
+                label="Save"
+                icon={<SaveIcon size={14} />}
+                items={[
+                  { label: 'Save layout as…', icon: <TilesIcon size={15} />, onClick: () => setSavingLayout(true) },
+                  { label: 'Export visible range as CSV…', icon: <CsvIcon size={15} />, onClick: () => exportRange(xRange), disabled: !log }
+                ]}
+              />
+              <span className="hint">
+                {api.platform === 'darwin' ? '⌘+scroll or pinch to zoom' : 'Ctrl+scroll to zoom'} · Shift+scroll to pan · drag to zoom in · double-click to reset
+              </span>
+            </div>
+          )}
         </>
       )}
 

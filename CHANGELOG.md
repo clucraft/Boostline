@@ -5,6 +5,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-09
+
+A new look and a new layout. Every feature from 0.4 is still there; some have moved.
+
+### Changed
+
+- **New look:** a near-black theme with an amber accent, the Inter and JetBrains Mono typefaces (bundled, so the app looks the same offline), new icons (Phosphor), and a new logo and app icon.
+- **New layout:** a rail on the left switches between **Live**, **Analyze**, **Dyno**, **Drag** and **Settings**. The top bar shows the connection, the car's VIN (click it for the DME data and ECU software) and the capture control. The status bar is gone.
+- **Live** is a dashboard of value tiles. Actual and target channels (boost, lambda, rail pressure, throttle, wastegate, load, torque, VANOS) share one tile, with a bar showing how far apart they are. Channels are picked in a searchable picker (**Ctrl+K**, ⌘K on a Mac). The live graphs sit below the tiles.
+- **Analyze** has a log library: your recorded logs grouped by day, with search. Click one to open it. Graphs, WOT pull tools, log comparison and heatmaps work as before.
+- **Dyno** and **Drag** show the results first: large peak power and torque or final-time figures, a set up → capture → results indicator, and the setup and saved runs in a panel on the right. Drag splits are drawn as bars, and gear changes are marked on the speed graph.
+- **Record** is now **Start capture** and works from any screen. **Start live / Stop live** are now **Resume stream / Pause stream**.
+- Channel names are shorter and in sentence case, e.g. *Boost pressure* and *Boost target* instead of *Boost Pressure · Actual* and *Boost Pressure · Target*. Logs still use the same channel ids, so older logs open with every channel recognised.
+- New installs start with accelerator pedal and intake air temperature on the dashboard as well.
+- Graphs, heatmaps and exported PNGs use the new colors. Time and sample heatmaps use an amber scale, and a moment picked from a heatmap is shaded blue in the graphs.
+
 ## [0.4.1] - 2026-10-09
 
 ### Fixed
@@ -89,6 +105,7 @@ First public release.
 - Safety: the UDS client has a hard allowlist of read-only services (session control, read data/memory, dynamic DID definition, tester present, read DTCs). Nothing that writes, codes or flashes can be sent.
 - Settings for units (bar/psi/kPa, °C/°F, km/h/mph, Nm/lb-ft, hp/PS/kW, kg/h/g/s/lb/min, λ/AFR), Log Viewer behavior, data folder, and auto-recording of WOT pulls.
 
-[Unreleased]: https://github.com/clucraft/Boostline/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/clucraft/Boostline/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/clucraft/Boostline/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/clucraft/Boostline/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/clucraft/Boostline/releases/tag/v0.4.0

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp, X } from 'lucide-react'
+import { ArrowDownIcon, ArrowUpIcon, CloseIcon, SearchIcon } from '../components/icons'
 import type { ChannelDef, UnitPrefs } from '@shared/types'
 import { GROUP_ORDER, MAX_GRAPH_CHANNELS } from '@shared/catalog'
 import { Modal } from '../components/ui'
@@ -75,7 +75,10 @@ export function EditChannelsModal({
     >
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
         <div className="stack" style={{ minHeight: 0 }}>
-          <input className="input" placeholder="Search channels..." value={query} onChange={(e) => setQuery(e.target.value)} autoFocus />
+          <div className="search-input">
+            <SearchIcon size={15} />
+            <input className="input" placeholder="Search channels" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus />
+          </div>
           <div style={{ maxHeight: 380, overflowY: 'auto' }}>
             {filtered.map((c) => (
               <label key={c.id} className={`channel-item ${ids.includes(c.id) ? 'checked' : ''} ${!ids.includes(c.id) && ids.length >= MAX_GRAPH_CHANNELS ? 'disabled' : ''}`}>
@@ -100,18 +103,18 @@ export function EditChannelsModal({
             const unit = def ? channelView(def, units).unit.label : ''
             const r = ranges[id] ?? ['', '']
             return (
-              <div key={id} className="card" style={{ padding: 10 }}>
+              <div key={id} className="selected-channel">
                 <div className="row">
-                  <span style={{ width: 12, height: 3, borderRadius: 2, background: colorAt(i) }} />
-                  <b style={{ flex: 1, fontSize: 12 }}>{def?.name ?? id}</b>
+                  <span style={{ width: 12, height: 3, borderRadius: 2, background: colorAt(i), flex: 'none' }} />
+                  <b style={{ flex: 1, fontSize: 12.5, fontWeight: 600 }}>{def?.name ?? id}</b>
                   <button className="icon-btn" disabled={i === 0} onClick={() => move(i, -1)}>
-                    <ArrowUp size={14} />
+                    <ArrowUpIcon size={15} />
                   </button>
                   <button className="icon-btn" disabled={i === ids.length - 1} onClick={() => move(i, 1)}>
-                    <ArrowDown size={14} />
+                    <ArrowDownIcon size={15} />
                   </button>
                   <button className="icon-btn" onClick={() => toggle(id)}>
-                    <X size={14} />
+                    <CloseIcon size={15} />
                   </button>
                 </div>
                 <div className="grid-2" style={{ marginTop: 8 }}>

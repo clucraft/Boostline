@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { AlertTriangle, Copy, FileSpreadsheet, FolderOpen, Image, Plus, SlidersHorizontal, X } from 'lucide-react'
+import { AxesIcon, CloseIcon, CopyIcon, CsvIcon, FolderIcon, ImageIcon, PlusIcon, WarningIcon } from '../components/icons'
 import type { HeatmapPrefs, HeatmapStatPref, LogData } from '@shared/types'
 import { GROUP_ORDER } from '@shared/catalog'
 import { autoEdges, cellValue, type HeatmapSpan } from '@shared/analysis/heatmap'
@@ -95,7 +95,7 @@ export function HeatmapView({
         Heatmaps are built from recorded logs. Open a log (or several), or record one with <b>Record</b> first.
         <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
           <button className="btn" onClick={onOpenLog}>
-            <FolderOpen size={13} /> Open log
+            <FolderIcon size={14} /> Open log
           </button>
         </div>
       </div>
@@ -111,7 +111,7 @@ export function HeatmapView({
     ? [
         {
           label: 'Copy table',
-          icon: <Copy size={14} />,
+          icon: <CopyIcon size={15} />,
           onClick: async () => {
             await api.copyText(heatmapTable(m, '\t'))
             toast('Table copied: paste it into Excel or a map editor', 'success')
@@ -119,14 +119,14 @@ export function HeatmapView({
         },
         {
           label: 'Save as CSV…',
-          icon: <FileSpreadsheet size={14} />,
+          icon: <CsvIcon size={15} />,
           onClick: async () => {
             if (await api.saveTextDialog(`heatmap_${prefs.valueId.replace(/\W+/g, '_')}.csv`, heatmapTable(m, ','), 'csv')) toast('Heatmap saved', 'success')
           }
         },
         {
           label: 'Save as PNG…',
-          icon: <Image size={14} />,
+          icon: <ImageIcon size={15} />,
           onClick: async () => {
             const title = `${m.valueDef.name} · ${STATS.find((s) => s.id === prefs.stat)?.label}`
             const subtitle = `${logs.map((l) => l.name).join(', ')} · min ${prefs.minSamples} samples per cell`
@@ -185,10 +185,10 @@ export function HeatmapView({
           </select>
         </div>
         <button className="btn" onClick={() => setEditingAxes(true)} style={{ alignSelf: 'flex-end' }}>
-          <SlidersHorizontal size={13} /> Axes
+          <AxesIcon size={14} /> Axes
         </button>
         <span style={{ alignSelf: 'flex-end' }}>
-          <MenuButton label="Export" className="btn" icon={<FileSpreadsheet size={13} />} items={exportItems} />
+          <MenuButton label="Export" className="btn" icon={<CsvIcon size={14} />} items={exportItems} />
         </span>
       </div>
 
@@ -245,12 +245,12 @@ export function HeatmapView({
             <span key={l.path ?? l.name} className="log-chip">
               <b title={l.path}>{l.name}</b>
               <button className="icon-btn" onClick={() => setExtra(extra.filter((x) => x !== l))} aria-label={`Remove ${l.name}`}>
-                <X size={12} />
+                <CloseIcon size={13} />
               </button>
             </span>
           ))}
         <button className="btn sm" onClick={addLogs}>
-          <Plus size={12} /> Add logs
+          <PlusIcon size={13} /> Add logs
         </button>
         <span className="muted small" style={{ marginLeft: 'auto' }}>
           {logs.length} log{logs.length > 1 ? 's' : ''} · {totalMinutes.toFixed(1)} min
@@ -260,7 +260,7 @@ export function HeatmapView({
 
       {(preset?.beta || info?.beta) && (
         <div className="warning-bar" style={{ marginTop: 0, marginBottom: 8 }}>
-          <AlertTriangle size={14} />
+          <WarningIcon size={15} />
           Beta: timing correction is estimated from the spread between the cylinders&apos; ignition timing, after removing each cylinder&apos;s normal
           offset. It catches cylinder-specific pulls; a retard applied equally to all cylinders isn&apos;t visible.
         </div>
@@ -268,7 +268,7 @@ export function HeatmapView({
 
       {m && m.grid.outside > 0.1 * (m.grid.samples + m.grid.outside) && (
         <div className="warning-bar" style={{ marginTop: 0, marginBottom: 8 }}>
-          <AlertTriangle size={14} />
+          <WarningIcon size={15} />
           {Math.round((100 * m.grid.outside) / (m.grid.samples + m.grid.outside))}% of the samples fall outside the axes. Widen them with Axes → Auto from
           data.
         </div>

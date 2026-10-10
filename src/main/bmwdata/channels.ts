@@ -71,40 +71,40 @@ const EXCLUDE_RAW = /ROH|SPANNUNG|SPG_|_SPG|ADAPT|OFFS|DIAG|ZAEHLER|FEHLER|GRENZ
 const PER_CYLINDER = [1, 2, 3, 4, 5, 6, 7, 8]
 
 const RULES: Rule[] = [
-  { id: 'engine.rpm', name: 'Engine RPM', group: 'Engine', result: /^STAT_MOTORDREHZAHL_WERT$/, info: /^Motordrehzahl$/i, units: ['rpm'], decimals: 0, min: 0, max: 7500 },
-  { id: 'engine.oil_pressure', name: 'Oil Pressure', group: 'Engine', result: /^STAT_OELDRUCK_WERT$/, info: /^.ldruck$/i, units: ['hPa', 'kPa', 'bar'], decimals: 2 },
+  { id: 'engine.rpm', name: 'Engine speed', group: 'Engine', result: /^STAT_MOTORDREHZAHL_WERT$/, info: /^Motordrehzahl$/i, units: ['rpm'], decimals: 0, min: 0, max: 7500 },
+  { id: 'engine.oil_pressure', name: 'Oil pressure', group: 'Engine', result: /^STAT_OELDRUCK_WERT$/, info: /^.ldruck$/i, units: ['hPa', 'kPa', 'bar'], decimals: 2 },
 
-  { id: 'throttle.pedal', name: 'Accelerator Pedal', group: 'Throttle', result: /FAHRERWUNSCH_PEDAL|^STAT_FAHRPEDAL(WERT)?_WERT$/, info: /Fahrpedal/i, exclude: /BUS_|ROH|SPANNUNG/i, units: ['%'], decimals: 1, min: 0, max: 100 },
-  { id: 'throttle.position', name: 'Throttle Position · Actual', group: 'Throttle', result: /^STAT_DROSSELKLAPPENWINKEL_WERT$/, info: /^Drosselklappenwinkel$/i, units: ['%', '% DK'], decimals: 1, min: 0, max: 100 },
-  { id: 'throttle.target', name: 'Throttle Position · Target', group: 'Throttle', result: /^STAT_DROSSELKLAPPENWINKEL_SOLL_WERT$/, info: /Drosselklappenwinkel.*soll|Sollwert Drosselklappe/i, units: ['%', '% DK'], decimals: 1, min: 0, max: 100 },
+  { id: 'throttle.pedal', name: 'Accelerator pedal', group: 'Throttle', result: /FAHRERWUNSCH_PEDAL|^STAT_FAHRPEDAL(WERT)?_WERT$/, info: /Fahrpedal/i, exclude: /BUS_|ROH|SPANNUNG/i, units: ['%'], decimals: 1, min: 0, max: 100 },
+  { id: 'throttle.position', name: 'Throttle angle', group: 'Throttle', result: /^STAT_DROSSELKLAPPENWINKEL_WERT$/, info: /^Drosselklappenwinkel$/i, units: ['%', '% DK'], decimals: 1, min: 0, max: 100 },
+  { id: 'throttle.target', name: 'Throttle angle target', group: 'Throttle', result: /^STAT_DROSSELKLAPPENWINKEL_SOLL_WERT$/, info: /Drosselklappenwinkel.*soll|Sollwert Drosselklappe/i, units: ['%', '% DK'], decimals: 1, min: 0, max: 100 },
 
-  { id: 'load.maf', name: 'Air Mass Flow · Actual', group: 'Load', result: /^STAT_LUFTMASSE_WERT$|^STAT_HFM_MASSENSTROM_MITTEL_IST_WERT$/, info: /^Luftmasse(nstrom)?( gefiltert)?$/i, units: ['kg/h'], decimals: 1, min: 0, max: 1400 },
-  { id: 'load.maf_throttle', name: 'Air Mass Through Throttle', group: 'Load', result: /MASSENSTROM_DK(_BANK1)?_WERT$/, info: /Massenstrom .ber Drosselklappe/i, exclude: /BANK2|Bank 2/, units: ['kg/h'], decimals: 1, min: 0, max: 1400 },
-  { id: 'load.engine', name: 'Engine Load · Actual', group: 'Load', result: /^STAT_(I_)?(REL_)?FUELLUNG_WERT$|RELATIVE_LUFTFUELLUNG/, info: /relative (Luft)?f.llung( ist)?$/i, exclude: /SOLL|_S_/, units: ['%'], decimals: 1 },
-  { id: 'load.engine_target', name: 'Engine Load · Target', group: 'Load', result: /^STAT_S_FUELLUNG_WERT$|FUELLUNG_SOLL/, info: /f.llung.*soll|Sollf.llung|^Sollwert F.llung/i, units: ['%'], decimals: 1 },
-  { id: 'load.torque.actual', name: 'Engine Torque · Actual', group: 'Load', result: /ISTMOMENT_OHNE|^STAT_(I_)?MOTORMOMENT(_IST)?_WERT$|MOMENT_IST_WERT$/, info: /^(Motor)?(ist)?moment( ist)?$/i, exclude: /KUPPL|RAD|RESERVE|EMASCHINE|ADAPT|MSR/i, units: ['Nm'], decimals: 0 },
-  { id: 'load.torque.driver', name: 'Driver Wish Torque', group: 'Load', result: /FAHRERWUNSCHMOMENT/, info: /Fahrerwunsch(moment)?/i, exclude: /PEDAL/i, units: ['Nm'], decimals: 0 },
-  { id: 'load.torque.reserve', name: 'Torque Reserve · Target', group: 'Load', result: /MOMENT_RESERVE_SOLL|MOMENTENRESERVE/, info: /Momentenreserve/i, units: ['Nm'], decimals: 0 },
+  { id: 'load.maf', name: 'Air mass flow', group: 'Load', result: /^STAT_LUFTMASSE_WERT$|^STAT_HFM_MASSENSTROM_MITTEL_IST_WERT$/, info: /^Luftmasse(nstrom)?( gefiltert)?$/i, units: ['kg/h'], decimals: 1, min: 0, max: 1400 },
+  { id: 'load.maf_throttle', name: 'Air mass through throttle', group: 'Load', result: /MASSENSTROM_DK(_BANK1)?_WERT$/, info: /Massenstrom .ber Drosselklappe/i, exclude: /BANK2|Bank 2/, units: ['kg/h'], decimals: 1, min: 0, max: 1400 },
+  { id: 'load.engine', name: 'Engine load', group: 'Load', result: /^STAT_(I_)?(REL_)?FUELLUNG_WERT$|RELATIVE_LUFTFUELLUNG/, info: /relative (Luft)?f.llung( ist)?$/i, exclude: /SOLL|_S_/, units: ['%'], decimals: 1 },
+  { id: 'load.engine_target', name: 'Engine load target', group: 'Load', result: /^STAT_S_FUELLUNG_WERT$|FUELLUNG_SOLL/, info: /f.llung.*soll|Sollf.llung|^Sollwert F.llung/i, units: ['%'], decimals: 1 },
+  { id: 'load.torque.actual', name: 'Engine torque', group: 'Load', result: /ISTMOMENT_OHNE|^STAT_(I_)?MOTORMOMENT(_IST)?_WERT$|MOMENT_IST_WERT$/, info: /^(Motor)?(ist)?moment( ist)?$/i, exclude: /KUPPL|RAD|RESERVE|EMASCHINE|ADAPT|MSR/i, units: ['Nm'], decimals: 0 },
+  { id: 'load.torque.driver', name: 'Driver torque request', group: 'Load', result: /FAHRERWUNSCHMOMENT/, info: /Fahrerwunsch(moment)?/i, exclude: /PEDAL/i, units: ['Nm'], decimals: 0 },
+  { id: 'load.torque.reserve', name: 'Torque reserve target', group: 'Load', result: /MOMENT_RESERVE_SOLL|MOMENTENRESERVE/, info: /Momentenreserve/i, units: ['Nm'], decimals: 0 },
 
-  { id: 'boost.charge_abs', name: 'Boost Pressure · Actual (abs)', group: 'Boost', result: /^STAT_LADEDRUCK_WERT$|^STAT_I_LADEDRUCK_WERT$/, info: /^Ladedruck( ist)?$/i, units: ['hPa', 'kPa'], decimals: 3, min: 0.5, max: 3.5 },
-  { id: 'boost.target_abs', name: 'Boost Pressure · Target (abs)', group: 'Boost', result: /^STAT_S_LADEDRUCK_WERT$|LADEDRUCK_SOLL_WERT$|SOLLLADEDRUCK/, info: /Ladedruck.*soll|Sollladedruck/i, exclude: /REGELDIFF|BEGRENZ/i, units: ['hPa', 'kPa'], decimals: 3, min: 0.5, max: 3.5 },
-  { id: 'boost.map', name: 'Manifold Pressure · Absolute', group: 'Boost', result: /^STAT_SAUGROHRDRUCK_WERT$|^STAT_DRUCK_ABS_SAUGROHR_WERT$/, info: /^Saugrohrdruck$/i, units: ['hPa', 'kPa'], decimals: 3, min: 0, max: 3.5 },
-  { id: 'boost.ambient', name: 'Ambient Pressure', group: 'Boost', result: /^STAT_UMGEBUNGSDRUCK_WERT$/, info: /^Umgebungsdruck$/i, units: ['hPa', 'kPa'], decimals: 3, min: 0.7, max: 1.1 },
-  { id: 'boost.wg_actual', name: 'EWG Position · Actual', group: 'Boost', result: /^STAT_I_EWG_POS_WERT$|EWG_POS(ITION)?_IST/, info: /Wastegate.*(ist|Position)/i, exclude: /BANK2|_2_WERT|SOLL|ROH|SPANNUNG/i, units: ['%'], decimals: 1, min: 0, max: 100 },
-  { id: 'boost.wg_target', name: 'EWG Position · Target', group: 'Boost', result: /^STAT_SOLL_POS_EWG_WERT$|EWG_POS(ITION)?_SOLL/, info: /Wastegate.*soll/i, exclude: /BANK2|EWG2/i, decimals: 2 },
+  { id: 'boost.charge_abs', name: 'Boost pressure (absolute)', group: 'Boost', result: /^STAT_LADEDRUCK_WERT$|^STAT_I_LADEDRUCK_WERT$/, info: /^Ladedruck( ist)?$/i, units: ['hPa', 'kPa'], decimals: 3, min: 0.5, max: 3.5 },
+  { id: 'boost.target_abs', name: 'Boost target (absolute)', group: 'Boost', result: /^STAT_S_LADEDRUCK_WERT$|LADEDRUCK_SOLL_WERT$|SOLLLADEDRUCK/, info: /Ladedruck.*soll|Sollladedruck/i, exclude: /REGELDIFF|BEGRENZ/i, units: ['hPa', 'kPa'], decimals: 3, min: 0.5, max: 3.5 },
+  { id: 'boost.map', name: 'Manifold pressure (absolute)', group: 'Boost', result: /^STAT_SAUGROHRDRUCK_WERT$|^STAT_DRUCK_ABS_SAUGROHR_WERT$/, info: /^Saugrohrdruck$/i, units: ['hPa', 'kPa'], decimals: 3, min: 0, max: 3.5 },
+  { id: 'boost.ambient', name: 'Barometric pressure', group: 'Boost', result: /^STAT_UMGEBUNGSDRUCK_WERT$/, info: /^Umgebungsdruck$/i, units: ['hPa', 'kPa'], decimals: 3, min: 0.7, max: 1.1 },
+  { id: 'boost.wg_actual', name: 'Wastegate position', group: 'Boost', result: /^STAT_I_EWG_POS_WERT$|EWG_POS(ITION)?_IST/, info: /Wastegate.*(ist|Position)/i, exclude: /BANK2|_2_WERT|SOLL|ROH|SPANNUNG/i, units: ['%'], decimals: 1, min: 0, max: 100 },
+  { id: 'boost.wg_target', name: 'Wastegate target', group: 'Boost', result: /^STAT_SOLL_POS_EWG_WERT$|EWG_POS(ITION)?_SOLL/, info: /Wastegate.*soll/i, exclude: /BANK2|EWG2/i, decimals: 2 },
 
-  { id: 'fuel.rail.actual', name: 'Rail Pressure · Actual', group: 'Fuel', result: /^STAT_I_DRUCK_RAIL_ABS_FILT(_NEU)?_WERT$|^STAT_RAILDRUCK(_IST)?_WERT$|PRAIL_IST/, info: /Gefilterter Raildruck-?Istwert|^Raildruck-?Istwert|^Raildruck( ist| gefiltert)?$/i, exclude: /ROH|SOLL|OFFS|KORR|SPANNUNG|ungefiltert/i, units: ['MPa', 'hPa', 'kPa', 'bar'], decimals: 1, min: 0, max: 400 },
-  { id: 'fuel.rail.target', name: 'Rail Pressure · Target', group: 'Fuel', result: /^STAT_S_RAILDRUCKREGELUNG(_NEU)?_WERT$|RAILDRUCK_SOLL|SOLL_RAILDRUCK/, info: /Raildruck.*soll|Sollwert Raildruck|Sollraildruck|Solldruck Hochdrucksystem/i, units: ['MPa', 'hPa', 'kPa', 'bar'], decimals: 1, min: 0, max: 400 },
-  { id: 'fuel.lpfp', name: 'Low Pressure Fuel · Actual', group: 'Fuel', result: /NIEDERDRUCK.*WERT$|KRAFTSTOFFNIEDERDRUCK/, info: /Kraftstoffniederdruck|Niederdruck( ist)?$/i, exclude: /SPANNUNG|SPG|SOLL/i, units: ['kPa', 'hPa', 'bar', 'MPa'], decimals: 2 },
-  { id: 'fuel.lambda.actual', name: 'Lambda · Actual', group: 'Fuel', result: /^STAT_LAMBDA_SONDE_IST_WERT$|^STAT_LAMBDA(_BANK1)?_IST(WERT)?_WERT$|LAMBDA_ISTWERT_SENSOR1_BANK1/, info: /^Lambda(wert)? ist|Lambda-?Istwert/i, exclude: /BANK2|Bank 2|OFFSET|ADAP|ABWEICH|WIDERSTAND|ZUSTAND/i, as: { unit: 'λ', quantity: 'lambda' }, decimals: 3, min: 0.7, max: 1.2 },
-  { id: 'fuel.lambda.target', name: 'Lambda · Target', group: 'Fuel', result: /^STAT_LAMBDA_BANK1_SOLL_WERT$|^STAT_LAMBDA_SONDE_SOLL_WERT$|LAMBDA_SOLL_WERT$/, info: /Lambda.*soll|Lambdasollwert/i, exclude: /BANK2|Bank 2|KENNZAHL/i, as: { unit: 'λ', quantity: 'lambda' }, decimals: 3, min: 0.7, max: 1.2 },
-  { id: 'fuel.ltft', name: 'Fuel Trim · Long Term', group: 'Fuel', result: /ADAPTION_MULTIPLIKATIV(_BANK1|_GRUPPE1)_WERT$/, info: /multiplikative (Gemisch)?adaption.*(Bank 1|Gruppe 1)/i, as: { unit: '%', quantity: 'percent' }, transform: (v) => (v - 1) * 100, decimals: 1, min: -25, max: 25 },
-  { id: 'fuel.inj_time', name: 'Injection Time', group: 'Fuel', result: /EINSPRITZZEIT(_ZYL1)?_WERT$|^STAT_TI_WERT$/, info: /^Einspritzzeit/i, units: ['ms'], decimals: 2 },
+  { id: 'fuel.rail.actual', name: 'Rail pressure', group: 'Fuel', result: /^STAT_I_DRUCK_RAIL_ABS_FILT(_NEU)?_WERT$|^STAT_RAILDRUCK(_IST)?_WERT$|PRAIL_IST/, info: /Gefilterter Raildruck-?Istwert|^Raildruck-?Istwert|^Raildruck( ist| gefiltert)?$/i, exclude: /ROH|SOLL|OFFS|KORR|SPANNUNG|ungefiltert/i, units: ['MPa', 'hPa', 'kPa', 'bar'], decimals: 1, min: 0, max: 400 },
+  { id: 'fuel.rail.target', name: 'Rail pressure target', group: 'Fuel', result: /^STAT_S_RAILDRUCKREGELUNG(_NEU)?_WERT$|RAILDRUCK_SOLL|SOLL_RAILDRUCK/, info: /Raildruck.*soll|Sollwert Raildruck|Sollraildruck|Solldruck Hochdrucksystem/i, units: ['MPa', 'hPa', 'kPa', 'bar'], decimals: 1, min: 0, max: 400 },
+  { id: 'fuel.lpfp', name: 'Low-side fuel pressure', group: 'Fuel', result: /NIEDERDRUCK.*WERT$|KRAFTSTOFFNIEDERDRUCK/, info: /Kraftstoffniederdruck|Niederdruck( ist)?$/i, exclude: /SPANNUNG|SPG|SOLL/i, units: ['kPa', 'hPa', 'bar', 'MPa'], decimals: 2 },
+  { id: 'fuel.lambda.actual', name: 'Lambda', group: 'Fuel', result: /^STAT_LAMBDA_SONDE_IST_WERT$|^STAT_LAMBDA(_BANK1)?_IST(WERT)?_WERT$|LAMBDA_ISTWERT_SENSOR1_BANK1/, info: /^Lambda(wert)? ist|Lambda-?Istwert/i, exclude: /BANK2|Bank 2|OFFSET|ADAP|ABWEICH|WIDERSTAND|ZUSTAND/i, as: { unit: 'λ', quantity: 'lambda' }, decimals: 3, min: 0.7, max: 1.2 },
+  { id: 'fuel.lambda.target', name: 'Lambda target', group: 'Fuel', result: /^STAT_LAMBDA_BANK1_SOLL_WERT$|^STAT_LAMBDA_SONDE_SOLL_WERT$|LAMBDA_SOLL_WERT$/, info: /Lambda.*soll|Lambdasollwert/i, exclude: /BANK2|Bank 2|KENNZAHL/i, as: { unit: 'λ', quantity: 'lambda' }, decimals: 3, min: 0.7, max: 1.2 },
+  { id: 'fuel.ltft', name: 'Long-term fuel trim', group: 'Fuel', result: /ADAPTION_MULTIPLIKATIV(_BANK1|_GRUPPE1)_WERT$/, info: /multiplikative (Gemisch)?adaption.*(Bank 1|Gruppe 1)/i, as: { unit: '%', quantity: 'percent' }, transform: (v) => (v - 1) * 100, decimals: 1, min: -25, max: 25 },
+  { id: 'fuel.inj_time', name: 'Injection time', group: 'Fuel', result: /EINSPRITZZEIT(_ZYL1)?_WERT$|^STAT_TI_WERT$/, info: /^Einspritzzeit/i, units: ['ms'], decimals: 2 },
 
-  { id: 'ign.avg', name: 'Ignition Timing · Average', group: 'Ignition', result: /^STAT_I_ZUENDWINKEL_WERT$|^STAT_ZW_AUSGABE_BANK1_WERT$|^STAT_ZUENDWINKEL_WERT$/, info: /^Z.ndwinkel( ist)?$/i, units: ['°CRK', '°'], decimals: 1, min: -10, max: 50 },
+  { id: 'ign.avg', name: 'Ignition timing (average)', group: 'Ignition', result: /^STAT_I_ZUENDWINKEL_WERT$|^STAT_ZW_AUSGABE_BANK1_WERT$|^STAT_ZUENDWINKEL_WERT$/, info: /^Z.ndwinkel( ist)?$/i, units: ['°CRK', '°'], decimals: 1, min: -10, max: 50 },
   ...PER_CYLINDER.map<Rule>((n) => ({
     id: `ign.cyl${n}`,
-    name: `Ignition Timing · Cyl ${n}`,
+    name: `Ignition timing cyl ${n}`,
     group: 'Ignition',
     result: new RegExp(`^STAT_ZUENDWINKEL_ZYL${n}_WERT$`),
     info: new RegExp(`^Z.ndwinkel Zylinder ${n}$`, 'i'),
@@ -115,30 +115,30 @@ const RULES: Rule[] = [
   })),
   ...PER_CYLINDER.map<Rule>((n) => ({
     id: `knock.signal.cyl${n}`,
-    name: `Knock Signal · Cyl ${n}`,
+    name: `Knock signal cyl ${n}`,
     group: 'Knock',
     result: new RegExp(`^STAT_KLOPFWERT_ZYL${n}(_SPANNUNG)?_WERT$`),
     info: new RegExp(`^Klopfwert Zylinder ${n}`, 'i'),
     decimals: 3
   })),
 
-  { id: 'temp.intake', name: 'Intake Air Temp', group: 'Temperatures', result: /^STAT_TEMP_ANSLUFT1?(_FILT)?_WERT$|^STAT_ANSAUGLUFTTEMPERATUR(_1)?_WERT$/, info: /^Ansauglufttemperatur( 1)?$/i, exclude: EXCLUDE_RAW, units: ['°C'], decimals: 1, min: -20, max: 90 },
-  { id: 'temp.charge', name: 'Charge Air Temp · Post IC', group: 'Temperatures', result: /LADELUFTTEMPERATUR|TEMP_LADELUFT|TEMP_NACH_LLK/, info: /Ladelufttemperatur/i, exclude: EXCLUDE_RAW, units: ['°C'], decimals: 1, min: -20, max: 90 },
-  { id: 'temp.coolant', name: 'Coolant Temp', group: 'Temperatures', result: /^STAT_KUEHLMITTELTEMPERATUR_WERT$|^STAT_TEMP_KUEHLMITTEL_WERT$/, info: /^K.hlmitteltemperatur$/i, units: ['°C'], decimals: 1, min: -20, max: 130 },
-  { id: 'temp.oil', name: 'Oil Temp', group: 'Temperatures', result: /^STAT_OELTEMPERATUR_WERT$|^STAT_TEMP_OEL_SUMPF_WERT$/, info: /^.ltemperatur$/i, units: ['°C'], decimals: 1, min: -20, max: 150 },
-  { id: 'temp.ambient', name: 'Ambient Temp', group: 'Temperatures', result: /^STAT_UMGEBUNGSTEMPERATUR_WERT$|^STAT_TEMP_UMGEBUNG_WERT$|AUSSENTEMPERATUR/, info: /^(Umgebungs|Au.en)temperatur$/i, units: ['°C'], decimals: 1, min: -30, max: 50 },
-  { id: 'temp.exhaust', name: 'Exhaust Gas Temp', group: 'Temperatures', result: /ABGASTEMPERATUR(_VORKAT|_BANK1)?_WERT$/, info: /^Abgastemperatur/i, exclude: /BANK2|Bank 2|SOLL/i, units: ['°C'], decimals: 0 },
-  { id: 'temp.trans', name: 'Transmission Oil Temp', group: 'Temperatures', result: /^STAT_TEMP_GETRIEBE_WERT$|GETRIEBEOELTEMP/, info: /Getriebe(.l)?temperatur/i, units: ['°C'], decimals: 1 },
+  { id: 'temp.intake', name: 'Intake air temp', group: 'Temperatures', result: /^STAT_TEMP_ANSLUFT1?(_FILT)?_WERT$|^STAT_ANSAUGLUFTTEMPERATUR(_1)?_WERT$/, info: /^Ansauglufttemperatur( 1)?$/i, exclude: EXCLUDE_RAW, units: ['°C'], decimals: 1, min: -20, max: 90 },
+  { id: 'temp.charge', name: 'Charge air temp', group: 'Temperatures', result: /LADELUFTTEMPERATUR|TEMP_LADELUFT|TEMP_NACH_LLK/, info: /Ladelufttemperatur/i, exclude: EXCLUDE_RAW, units: ['°C'], decimals: 1, min: -20, max: 90 },
+  { id: 'temp.coolant', name: 'Coolant temp', group: 'Temperatures', result: /^STAT_KUEHLMITTELTEMPERATUR_WERT$|^STAT_TEMP_KUEHLMITTEL_WERT$/, info: /^K.hlmitteltemperatur$/i, units: ['°C'], decimals: 1, min: -20, max: 130 },
+  { id: 'temp.oil', name: 'Oil temp', group: 'Temperatures', result: /^STAT_OELTEMPERATUR_WERT$|^STAT_TEMP_OEL_SUMPF_WERT$/, info: /^.ltemperatur$/i, units: ['°C'], decimals: 1, min: -20, max: 150 },
+  { id: 'temp.ambient', name: 'Ambient temp', group: 'Temperatures', result: /^STAT_UMGEBUNGSTEMPERATUR_WERT$|^STAT_TEMP_UMGEBUNG_WERT$|AUSSENTEMPERATUR/, info: /^(Umgebungs|Au.en)temperatur$/i, units: ['°C'], decimals: 1, min: -30, max: 50 },
+  { id: 'temp.exhaust', name: 'Exhaust temp', group: 'Temperatures', result: /ABGASTEMPERATUR(_VORKAT|_BANK1)?_WERT$/, info: /^Abgastemperatur/i, exclude: /BANK2|Bank 2|SOLL/i, units: ['°C'], decimals: 0 },
+  { id: 'temp.trans', name: 'Transmission oil temp', group: 'Temperatures', result: /^STAT_TEMP_GETRIEBE_WERT$|GETRIEBEOELTEMP/, info: /Getriebe(.l)?temperatur/i, units: ['°C'], decimals: 1 },
 
-  { id: 'vanos.intake.actual', name: 'VANOS Intake · Actual', group: 'VANOS', result: /^STAT_I_NWSE_SPREIZUNG_WERT$|^STAT_NW_EINLASSSPREIZUNG_WERT$|^STAT_POSITION_NOCKENWELLE_EINLASS_WERT$/, info: /Einlassspreizung( ist)?$|Nockenwelle Einlass( ist)?$/i, exclude: /SOLL|ADAP/i, units: ['°CRK', '°'], decimals: 1 },
-  { id: 'vanos.intake.target', name: 'VANOS Intake · Target', group: 'VANOS', result: /^STAT_S_NWSE_SPREIZUNG_WERT$|SOLLWINKEL_EINLASSVANOS|EINLASSSPREIZUNG_SOLL/, info: /Einlassspreizung soll|Sollwinkel Einlass/i, units: ['°CRK', '°'], decimals: 1 },
-  { id: 'vanos.exhaust.actual', name: 'VANOS Exhaust · Actual', group: 'VANOS', result: /^STAT_I_NWSA_SPREIZUNG_WERT$|^STAT_NW_AUSLASSSPREIZUNG_WERT$|^STAT_POSITION_NOCKENWELLE_AUSLASS_WERT$/, info: /Auslassspreizung( ist)?$|Nockenwelle Auslass( ist)?$/i, exclude: /SOLL|ADAP/i, units: ['°CRK', '°'], decimals: 1 },
-  { id: 'vanos.exhaust.target', name: 'VANOS Exhaust · Target', group: 'VANOS', result: /^STAT_S_NWSA_SPREIZUNG_WERT$|SOLLWINKEL_AUSLASSVANOS|AUSLASSSPREIZUNG_SOLL/, info: /Auslassspreizung soll|Sollwinkel Auslass/i, units: ['°CRK', '°'], decimals: 1 },
-  { id: 'vanos.valvelift', name: 'Valvetronic Lift', group: 'VANOS', result: /^STAT_S_EINLASSVENTILHUB(_FILT)?_WERT$|^STAT_EINLASSVENTILHUB_WERT$/, info: /Einlassventilhub/i, exclude: /ADAP|PRAEDIK/i, units: ['mm'], decimals: 2 },
+  { id: 'vanos.intake.actual', name: 'Intake cam (VANOS)', group: 'VANOS', result: /^STAT_I_NWSE_SPREIZUNG_WERT$|^STAT_NW_EINLASSSPREIZUNG_WERT$|^STAT_POSITION_NOCKENWELLE_EINLASS_WERT$/, info: /Einlassspreizung( ist)?$|Nockenwelle Einlass( ist)?$/i, exclude: /SOLL|ADAP/i, units: ['°CRK', '°'], decimals: 1 },
+  { id: 'vanos.intake.target', name: 'Intake cam target', group: 'VANOS', result: /^STAT_S_NWSE_SPREIZUNG_WERT$|SOLLWINKEL_EINLASSVANOS|EINLASSSPREIZUNG_SOLL/, info: /Einlassspreizung soll|Sollwinkel Einlass/i, units: ['°CRK', '°'], decimals: 1 },
+  { id: 'vanos.exhaust.actual', name: 'Exhaust cam (VANOS)', group: 'VANOS', result: /^STAT_I_NWSA_SPREIZUNG_WERT$|^STAT_NW_AUSLASSSPREIZUNG_WERT$|^STAT_POSITION_NOCKENWELLE_AUSLASS_WERT$/, info: /Auslassspreizung( ist)?$|Nockenwelle Auslass( ist)?$/i, exclude: /SOLL|ADAP/i, units: ['°CRK', '°'], decimals: 1 },
+  { id: 'vanos.exhaust.target', name: 'Exhaust cam target', group: 'VANOS', result: /^STAT_S_NWSA_SPREIZUNG_WERT$|SOLLWINKEL_AUSLASSVANOS|AUSLASSSPREIZUNG_SOLL/, info: /Auslassspreizung soll|Sollwinkel Auslass/i, units: ['°CRK', '°'], decimals: 1 },
+  { id: 'vanos.valvelift', name: 'Valvetronic lift', group: 'VANOS', result: /^STAT_S_EINLASSVENTILHUB(_FILT)?_WERT$|^STAT_EINLASSVENTILHUB_WERT$/, info: /Einlassventilhub/i, exclude: /ADAP|PRAEDIK/i, units: ['mm'], decimals: 2 },
 
-  { id: 'vehicle.speed', name: 'Vehicle Speed', group: 'Vehicle', result: /^STAT_GESCHWINDIGKEIT_WERT$|^STAT_FAHRZEUGGESCHWINDIGKEIT_WERT$/, info: /^(Fahrzeug)?geschwindigkeit$/i, units: ['km/h'], decimals: 1, min: 0, max: 300 },
+  { id: 'vehicle.speed', name: 'Vehicle speed', group: 'Vehicle', result: /^STAT_GESCHWINDIGKEIT_WERT$|^STAT_FAHRZEUGGESCHWINDIGKEIT_WERT$/, info: /^(Fahrzeug)?geschwindigkeit$/i, units: ['km/h'], decimals: 1, min: 0, max: 300 },
   { id: 'vehicle.gear', name: 'Gear', group: 'Vehicle', result: /^STAT_BERECHNETER_GANG_WERT$|^STAT_ISTGANG_WERT$|^STAT_GANG_WERT$/, info: /^(berechneter |aktueller )?Gang$/i, as: { unit: 'gear', quantity: 'gear' }, decimals: 0, min: 0, max: 8 },
-  { id: 'elec.battery', name: 'Battery Voltage', group: 'Electrical', result: /^STAT_UBATT(_AD_WANDLER)?_WERT$|^STAT_BATTERIESPANNUNG_WERT$|^STAT_SPG_ECU_BORDNETZ_WERT$/, info: /^Batteriespannung$|^Bordnetzspannung$/i, units: ['V', 'mV'], decimals: 2, min: 10, max: 16 }
+  { id: 'elec.battery', name: 'Battery voltage', group: 'Electrical', result: /^STAT_UBATT(_AD_WANDLER)?_WERT$|^STAT_BATTERIESPANNUNG_WERT$|^STAT_SPG_ECU_BORDNETZ_WERT$/, info: /^Batteriespannung$|^Bordnetzspannung$/i, units: ['V', 'mV'], decimals: 2, min: 10, max: 16 }
 ]
 
 /** Picks the measurement for a rule: result-name matches first, then description matches. */
@@ -220,8 +220,8 @@ export function buildDmeChannelSet(dme: BmwDme): DmeChannelSet {
       compute: ([p, amb]) => p - amb
     })
   }
-  relative('boost.actual', 'Boost Pressure · Actual', ids.has('boost.charge_abs') ? 'boost.charge_abs' : 'boost.map')
-  relative('boost.target', 'Boost Pressure · Target', 'boost.target_abs')
+  relative('boost.actual', 'Boost pressure', ids.has('boost.charge_abs') ? 'boost.charge_abs' : 'boost.map')
+  relative('boost.target', 'Boost target', 'boost.target_abs')
 
   for (const m of dme.measurements) {
     if (taken.has(m.did)) continue

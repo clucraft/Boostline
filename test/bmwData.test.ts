@@ -131,7 +131,7 @@ describe('buildDmeChannelSet', () => {
 
   it('maps curated measurements onto well-known channel ids with English names', () => {
     expect(byId.get('engine.rpm')).toMatchObject({ did: 0x7001, length: 2, composable: true })
-    expect(byId.get('engine.rpm')!.channel).toMatchObject({ name: 'Engine RPM', unit: 'rpm', group: 'Engine' })
+    expect(byId.get('engine.rpm')!.channel).toMatchObject({ name: 'Engine speed', unit: 'rpm', group: 'Engine' })
     expect(byId.get('load.maf_throttle')!.did).toBe(0x7004)
     expect(byId.get('ign.cyl3')!.did).toBe(0x7005)
     expect(byId.get('fuel.lambda.target')!.channel).toMatchObject({ unit: 'λ', quantity: 'lambda' })

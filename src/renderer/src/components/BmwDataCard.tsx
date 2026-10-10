@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Database, Download, FolderOpen, Loader2, Trash2 } from 'lucide-react'
+import { DatabaseIcon, DownloadIcon, FolderIcon, SpinnerIcon, TrashIcon } from './icons'
 import type { BmwDataProgress, BmwDataSummary } from '@shared/ipc'
 import { api, useApp } from '../store'
 import { fmtBytes } from '../lib/format'
@@ -52,23 +52,18 @@ export function BmwDataCard() {
     <section className="card">
       <h3 className="card-title">
         <span className="row">
-          <Database size={15} /> BMW DME data
+          <DatabaseIcon size={17} /> BMW DME data
         </span>
       </h3>
-      <div className="muted small" style={{ lineHeight: 1.6, marginBottom: 8 }}>
+      <div className="help-text" style={{ marginBottom: 8 }}>
         Without this, real cars only report generic OBD-II channels. BMW&apos;s own DME measurement tables add boost target, wastegate, rail
         pressure, lambda, per-cylinder timing and knock, VANOS and hundreds more for B38/B48/B58, S58, S55, N55, N20, N54, N63 and S63 engines.
         They come from BMW diagnostic files decoded by the open-source{' '}
-        <a href="https://github.com/gediz/bmw-unified-db" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
+        <a href="https://github.com/gediz/bmw-unified-db" target="_blank" rel="noreferrer">
           bmw-unified-db
         </a>{' '}
         project. The data is BMW-copyrighted, so Boostline downloads it to your PC instead of shipping it.{' '}
-        <a
-          href="https://github.com/clucraft/Boostline#setting-up-bmw-dme-data"
-          target="_blank"
-          rel="noreferrer"
-          style={{ color: 'var(--accent)' }}
-        >
+        <a href="https://github.com/clucraft/Boostline#setting-up-bmw-dme-data" target="_blank" rel="noreferrer">
           Step-by-step guide
         </a>
       </div>
@@ -149,10 +144,10 @@ export function BmwDataCard() {
 
       <div className="row wrap" style={{ marginTop: 8 }}>
         <button className="btn primary" disabled={busy} onClick={() => run(() => api.bmwDataDownload())}>
-          {busy ? <Loader2 size={13} className="spin" /> : <Download size={13} />} {summary ? 'Update from GitHub' : 'Download & import'}
+          {busy ? <SpinnerIcon size={15} className="spin" /> : <DownloadIcon size={15} />} {summary ? 'Update from GitHub' : 'Download & import'}
         </button>
         <button className="btn" disabled={busy} onClick={() => run(() => api.bmwDataImportFile())}>
-          <FolderOpen size={13} /> Import file…
+          <FolderIcon size={15} /> Import file…
         </button>
         {summary && (
           <button
@@ -163,7 +158,7 @@ export function BmwDataCard() {
               setSummary(null)
             }}
           >
-            <Trash2 size={13} /> Remove
+            <TrashIcon size={15} /> Remove
           </button>
         )}
         {progress && (

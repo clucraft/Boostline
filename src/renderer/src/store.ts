@@ -5,7 +5,7 @@ import { BMW_CATALOG } from '@shared/catalog'
 
 export const api = window.boostline
 
-export type Page = 'logger' | 'dyno' | 'drag' | 'settings'
+export type Page = 'live' | 'analyze' | 'dyno' | 'drag' | 'settings'
 
 export interface Toast {
   id: number
@@ -41,7 +41,7 @@ const mapOf = (c: ChannelDef[]): Map<string, ChannelDef> => new Map(c.map((d) =>
 let toastId = 0
 
 export const useApp = create<AppState>((set, get) => ({
-  page: 'logger',
+  page: 'live',
   info: null,
   settings: null,
   presets: { channels: [], layouts: [], dragProfiles: [] },

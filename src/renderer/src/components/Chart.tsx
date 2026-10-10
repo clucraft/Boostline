@@ -52,10 +52,10 @@ interface Props {
   onContextMenu?: (e: MouseEvent, xValue: number | null) => void
 }
 
-const AXIS_STROKE = '#7f93a8'
-const GRID = '#142130'
-const FONT_FAMILY = '"Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif'
-const FONT = `10px ${FONT_FAMILY}`
+const AXIS_STROKE = '#8a8a93'
+const GRID = '#1b1b1f'
+const FONT_FAMILY = 'Inter, "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif'
+const FONT = `11px ${FONT_FAMILY}`
 
 function padRange(min: number | null, max: number | null): [number, number] {
   if (min === null || max === null || !Number.isFinite(min) || !Number.isFinite(max)) return [0, 1]
@@ -237,13 +237,21 @@ export const Chart = forwardRef<ChartHandle, Props>(function Chart(props, ref) {
     u.over.addEventListener('contextmenu', onContext)
     u.over.addEventListener('mouseleave', onLeave)
 
+    // Resize on the next frame so a size change never feeds back into the same layout pass.
+    let resizeFrame = 0
     const ro = new ResizeObserver(() => {
-      const r = el.getBoundingClientRect()
-      if (r.width > 0 && r.height > 0) u.setSize({ width: r.width, height: r.height })
+      cancelAnimationFrame(resizeFrame)
+      resizeFrame = requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect()
+        if (r.width > 0 && r.height > 0 && (Math.round(r.width) !== u.width || Math.round(r.height) !== u.height)) {
+          u.setSize({ width: r.width, height: r.height })
+        }
+      })
     })
     ro.observe(el)
 
     return () => {
+      cancelAnimationFrame(resizeFrame)
       ro.disconnect()
       u.destroy()
       plot.current = null
@@ -314,10 +322,10 @@ export const Chart = forwardRef<ChartHandle, Props>(function Chart(props, ref) {
       canvas.width = src.width + pad * 2
       canvas.height = src.height + head + pad
       const ctx = canvas.getContext('2d')!
-      ctx.fillStyle = '#0b131c'
+      ctx.fillStyle = '#0c0c0d'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
-      ctx.fillStyle = '#5fb4ff'
-      ctx.font = `700 ${16 * dpr}px ${FONT_FAMILY}`
+      ctx.fillStyle = '#ededee'
+      ctx.font = `600 ${16 * dpr}px ${FONT_FAMILY}`
       ctx.fillText(title, pad, pad + 14 * dpr)
       ctx.font = `${11 * dpr}px ${FONT_FAMILY}`
       let lx = pad
@@ -325,15 +333,15 @@ export const Chart = forwardRef<ChartHandle, Props>(function Chart(props, ref) {
       for (const item of legend) {
         ctx.fillStyle = item.color
         ctx.fillRect(lx, ly - 4 * dpr, 14 * dpr, 2 * dpr)
-        ctx.fillStyle = '#c4d2e1'
+        ctx.fillStyle = '#a1a1a9'
         ctx.fillText(item.label, lx + 20 * dpr, ly)
         lx += ctx.measureText(item.label).width + 40 * dpr
       }
       ctx.drawImage(src, pad, head)
-      ctx.fillStyle = '#3e5268'
-      ctx.font = `${10 * dpr}px ${FONT_FAMILY}`
+      ctx.fillStyle = '#ffad33'
+      ctx.font = `600 ${11 * dpr}px ${FONT_FAMILY}`
       ctx.textAlign = 'right'
-      ctx.fillText('Boostline', canvas.width - pad, pad + 14 * dpr)
+      ctx.fillText('boostline', canvas.width - pad, pad + 14 * dpr)
       return canvas.toDataURL('image/png')
     }
   }))

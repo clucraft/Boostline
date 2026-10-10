@@ -40,7 +40,7 @@ export type ChannelGroup =
 export interface ChannelDef {
   /** Stable key, e.g. "engine.rpm". Used in presets, logs and analysis lookups. */
   id: string
-  /** Display name, e.g. "Boost Pressure · Actual". */
+  /** Display name, e.g. "Boost pressure". */
   name: string
   group: ChannelGroup
   /** Native unit as produced by the adapter, e.g. "rpm", "bar", "°C", "%", "km/h". */

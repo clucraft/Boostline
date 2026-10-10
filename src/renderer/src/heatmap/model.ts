@@ -212,11 +212,11 @@ export function buildModel(sources: HeatmapSource[], opts: BuildOptions): Heatma
 // ------------------------------------------------------------------ colors
 
 type RGB = [number, number, number]
-const MID: RGB = [35, 50, 68]
-const BAD: RGB = [255, 77, 94]
-const GOOD: RGB = [59, 156, 255]
-const SEQ_LO: RGB = [18, 50, 79]
-const SEQ_HI: RGB = [95, 208, 255]
+const MID: RGB = [38, 38, 43]
+const BAD: RGB = [248, 92, 92]
+const GOOD: RGB = [56, 189, 248]
+const SEQ_LO: RGB = [52, 34, 10]
+const SEQ_HI: RGB = [255, 173, 51]
 
 const mix = (a: RGB, b: RGB, t: number): RGB => a.map((v, i) => Math.round(v + (b[i] - v) * t)) as RGB
 
@@ -231,7 +231,7 @@ export function cellColor(model: HeatmapModel, v: number): { bg: string; fg: str
     c = mix(SEQ_LO, SEQ_HI, Math.max(0, Math.min(1, t)))
   }
   const lum = 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
-  return { bg: `rgb(${c[0]},${c[1]},${c[2]})`, fg: lum > 150 ? '#06111c' : '#eef4fa' }
+  return { bg: `rgb(${c[0]},${c[1]},${c[2]})`, fg: lum > 150 ? '#140c00' : '#f4f4f5' }
 }
 
 export function legendGradient(model: HeatmapModel): string {

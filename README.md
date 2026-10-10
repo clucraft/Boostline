@@ -4,11 +4,11 @@
 
 Boostline connects to your car over an ENET cable or an MHD / bootmod3 WiFi adapter. It shows live engine data, records logs, and turns your pulls into graphs, power and torque estimates, and acceleration times. All of this runs in one desktop app for Windows and macOS.
 
-![Boostline Logger with live data tiles and the live graph](docs/screenshots/logger.png)
+![The Live dashboard: value tiles, actual-vs-target pairs with deviation bars, and the live graph](docs/screenshots/live.png)
 
-| Log Viewer with WOT pull detection | Road dyno |
+| Analyze: log library and WOT pull detection | Road dyno |
 |---|---|
-| ![Log Viewer](docs/screenshots/log-viewer.png) | ![Dyno](docs/screenshots/dyno.png) |
+| ![Analyze](docs/screenshots/analyze.png) | ![Dyno](docs/screenshots/dyno.png) |
 
 | Drag timing | |
 |---|---|
@@ -20,18 +20,20 @@ Boostline connects to your car over an ENET cable or an MHD / bootmod3 WiFi adap
 
 ## Features
 
-### Logger
+### Live
 
-- Live Data tiles for up to **40 channels** at once, each showing the current value and a 12-second sparkline.
-- A grouped, searchable channel list: Engine, Throttle, Load, Boost, Fuel, Ignition, Knock, Temperatures, VANOS, Vehicle, Electrical.
+- A dashboard of up to **40 channels**, each tile showing the current value and a 12-second sparkline.
+- **Actual and target share a tile** (boost, lambda, rail pressure, throttle, wastegate, load, torque, VANOS), with a bar showing how far apart they are right now.
+- **Ctrl+K** (⌘K on a Mac) opens a searchable channel picker. Channels are grouped: Engine, Throttle, Load, Boost, Fuel, Ignition, Knock, Temperatures, VANOS, Vehicle, Electrical.
 - **Channel presets** you can save and load.
-- **Record** to CSV with one click. Optionally, recording can start and stop automatically for each full-throttle (WOT) pull.
+- **Live graphs** below the tiles plot incoming data. Freeze them to zoom into what just happened.
+- **Start capture** in the top bar records to CSV from any screen. Optionally, a capture can start and stop automatically for each full-throttle (WOT) pull.
 - Values display in your units: bar/psi/kPa, °C/°F, km/h/mph, Nm/lb-ft, hp/PS/kW, kg/h/g/s/lb/min, λ/AFR.
 
-### Log Viewer
+### Analyze
 
+- A **log library** of everything you've recorded, grouped by day and searchable. Any other CSV log opens with **Open**.
 - Up to **5 graphs × 5 channels**, each channel on its own colored Y axis.
-- **Live mode** plots incoming data while you log. Pause it to zoom into what just happened.
 - Navigation: Ctrl+scroll to zoom, Shift+scroll to pan, drag to zoom into a range, and double-click to reset. Cursors stay in sync across graphs.
 - Cursor value pop-ups, manual scales per channel, and rename, pin, reorder, fullscreen and right-click actions per graph.
 - **WOT pull detection**: jump from pull to pull, export a pull as CSV, or send it to the Dyno.
@@ -176,11 +178,13 @@ npm run dev
 ### Using it
 
 1. **Real car only, once:** import the BMW DME data so you get the full BMW channel set. See [Setting up BMW DME data](#setting-up-bmw-dme-data).
-2. Click **Connect** in the top bar and pick **Simulator**, **ENET cable**, **MHD WiFi adapter** or **bootmod3 WiFi adapter**.
-3. Tick channels in the sidebar to see them as Live Data tiles. Hit **Record** to log.
-4. In **Log Viewer → Open log**, review a recording, jump between WOT pulls, and compare logs.
-5. On the **Dyno** tab, set your vehicle mass, **Arm run**, and do a full-throttle pull in 3rd or 4th gear.
-6. On the **Drag** tab, pick a mode, **Arm drag**, stop, then launch.
+2. Click **Connect** in the top bar. The arrow next to it picks **Simulator**, **ENET cable**, **MHD WiFi adapter** or **bootmod3 WiFi adapter**.
+3. On **Live**, press **Ctrl+K** (⌘K on a Mac) or **Channels** to choose what the tiles show. Click **Start capture** in the top bar to record a log.
+4. In **Analyze**, pick a log from the library to review it, jump between WOT pulls, compare logs or open the heatmap.
+5. In **Dyno**, set your vehicle mass, **Arm run**, and do a full-throttle pull in 3rd or 4th gear.
+6. In **Drag**, pick a mode, **Arm run**, stop, then launch.
+
+The left-hand rail switches between **Live**, **Analyze**, **Dyno**, **Drag** and **Settings**. The connection status, the car's VIN and the capture timer sit in the top bar.
 
 Your files go to `Documents/Boostline`, which you can change in Settings:
 
@@ -195,7 +199,7 @@ Your files go to `Documents/Boostline`, which you can change in Settings:
 
 ## Heatmaps
 
-The Log Viewer's **Heatmap** view sorts every sample of your logs into an RPM × load grid and colors each cell by a value of your choice. Instead of scrolling through pulls looking for a problem, you see straight away *where* in the map it happens, and you can jump from any cell to the moments that landed there.
+The **Heatmap** view in **Analyze** sorts every sample of your logs into an RPM × load grid and colors each cell by a value of your choice. Instead of scrolling through pulls looking for a problem, you see straight away *where* in the map it happens, and you can jump from any cell to the moments that landed there.
 
 ![The knock map: worst-cylinder timing correction by RPM and load, with a selected cell's statistics and the moments that landed in it](docs/screenshots/heatmap.png)
 
@@ -203,7 +207,7 @@ The Log Viewer's **Heatmap** view sorts every sample of your logs into an RPM ×
 
 ### 1. Switch to the heatmap
 
-Open a log in the **Log Viewer** (**Open log**) and switch the toggle next to its title from **Graphs** to **Heatmap**. The controls are along the top:
+Open a log in **Analyze** (pick it in the library, or use **Open**) and switch the toggle at the top left from **Graphs** to **Heatmap**. The controls are along the top:
 
 ![The heatmap toolbar: Graphs/Heatmap toggle, preset, value and statistic pickers, Axes and Export buttons, filters and the minimum-samples slider](docs/screenshots/heatmap-toolbar.png)
 
@@ -234,13 +238,13 @@ Open a log in the **Log Viewer** (**Open log**) and switch the toggle next to it
   </tr>
 </table>
 
-Diverging values like errors and corrections use **red for the bad direction and blue for the other**. Amounts like time or samples use a single blue scale. Dashed cells have no data, or fewer samples than the **Min samples** setting.
+Diverging values like errors and corrections use **red for the bad direction and blue for the other**. Amounts like time or samples use a single amber scale. Dashed cells have no data, or fewer samples than the **Min samples** setting.
 
 ### 3. Click a cell, then jump to the graphs
 
-Clicking a cell shows its mean, min, max, spread, sample count and time in the side panel, plus every moment in the logs that landed there (the longest twelve). Click a moment and Boostline switches back to **Graphs**, zoomed in on it with that stretch shaded orange, so you can see what the engine was doing:
+Clicking a cell shows its mean, min, max, spread, sample count and time in the side panel, plus every moment in the logs that landed there (the longest twelve). Click a moment and Boostline switches back to **Graphs**, zoomed in on it with that stretch shaded blue, so you can see what the engine was doing:
 
-![The graphs after jumping from a heatmap cell: zoomed to the moment, with the stretch shaded orange](docs/screenshots/heatmap-jump.png)
+![The graphs after jumping from a heatmap cell: zoomed to the moment, with the stretch shaded blue](docs/screenshots/heatmap-jump.png)
 
 ### Options
 
@@ -297,7 +301,7 @@ Without this data, a real car only shows the generic OBD-II channels. Import it 
 
 ### 1. Open Settings → BMW DME data
 
-Click **Settings** in the top bar. The **BMW DME data** card is in the first row.
+Click **Settings** at the bottom of the left-hand rail. The **BMW DME data** card is right below **Connection**.
 
 ![The Settings page with the BMW DME data card highlighted](docs/screenshots/bmw-dme-01-settings.png)
 
@@ -316,7 +320,7 @@ Boostline then:
 
 Progress appears next to the buttons: *Downloading…*, *Verifying checksum…*, *Unpacking…*, *Extracting DME tables…*. On a normal connection it takes under a minute.
 
-![The card while importing, showing Verifying checksum next to the disabled buttons](docs/screenshots/bmw-dme-03-progress.png)
+![The card while importing, showing the download progress below the disabled buttons](docs/screenshots/bmw-dme-03-progress.png)
 
 ### 4. Check the result
 
@@ -346,10 +350,10 @@ Changes take effect the next time you connect.
 
 Connect as usual. When the data is in use:
 
-- **Status bar:** the bottom-right shows **DME data: …**, e.g. `DME data: dme8ff_r`.
+- **Top bar:** click the VIN next to the connection status. The menu shows **DME data**, e.g. `dme8ff_r`.
 - **Settings:** the BMW DME data card shows the ID your DME reported and which data it matched.
-- **Logger channel list:** BMW channels appear with English names, such as *Boost Pressure · Target*, *EWG Position · Actual*, *Rail Pressure · Target* and *Ignition Timing · Cyl 1–6*.
-- **DME group:** a new **DME** group holds every other measurement, under BMW's original (German) names. Use the search box to find them.
+- **Channel picker (Ctrl+K):** BMW channels appear with English names, such as *Boost target*, *Wastegate position*, *Rail pressure target* and *Ignition timing cyl 1–6*.
+- **DME group:** a new **DME** group holds every other measurement, under BMW's original (German) names. Search the picker to find them.
 
 ### Updating, offline PCs and removing
 
@@ -380,7 +384,7 @@ BMW-specific channels are added with JSON files in `Documents/Boostline/Definiti
   "channels": [
     {
       "id": "boost.target",             // reusing a built-in id replaces that channel
-      "name": "Boost Pressure · Target",
+      "name": "Boost target",
       "group": "Boost",
       "unit": "bar",
       "quantity": "pressure",
@@ -395,7 +399,7 @@ BMW-specific channels are added with JSON files in `Documents/Boostline/Definiti
     },
     {
       "id": "knock.cyl1",
-      "name": "Knock Retard · Cyl 1",
+      "name": "Knock retard cyl 1",
       "group": "Knock",
       "unit": "°CRK",
       "quantity": "angle",
@@ -425,7 +429,7 @@ Boostline writes plain CSV that opens in Excel and other log viewers. It starts 
 # adapter=ENET · 169.254.12.7
 # vin=WBA...
 # ids=engine.rpm,vehicle.speed,throttle.pedal,boost.actual
-Time [s],Engine RPM [rpm],Vehicle Speed [km/h],Accelerator Pedal [%],Boost Pressure · Actual [bar]
+Time [s],Engine speed [rpm],Vehicle speed [km/h],Accelerator pedal [%],Boost pressure [bar]
 0.000,2014,61.2,100.0,0.912
 0.020,2031,61.4,100.0,0.948
 ```
@@ -453,7 +457,7 @@ src/
     vehicle/         Adapters: simulator, HSFZ/ENET, UDS client, OBD channels, discovery, diagnostics
     session.ts       Connection lifecycle, streaming, batching to the UI, recording
   preload/           Typed, sandboxed bridge (window.boostline)
-  renderer/          React UI: Logger, Log Viewer, Dyno, Drag, Settings (uPlot charts)
+  renderer/          React UI: Live, Analyze, Dyno, Drag, Settings (uPlot charts, Phosphor icons)
   shared/            Types, units, channel catalog and the pure analysis code
     analysis/        CSV, WOT detection, gear detection, air density, dyno, drag
 test/                Vitest suites, including a fake BMW gateway for protocol tests

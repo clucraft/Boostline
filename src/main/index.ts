@@ -18,9 +18,9 @@ function createWindow(): void {
     minHeight: 680,
     // Windows/Linux: frameless with Boostline's own window buttons. macOS: hidden title
     // bar with the native traffic lights inset into Boostline's top bar.
-    ...(isMac ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 18, y: 22 } } : { frame: false }),
+    ...(isMac ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 20, y: 18 } } : { frame: false }),
     show: false,
-    backgroundColor: '#070b10',
+    backgroundColor: '#050505',
     title: 'Boostline',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -66,9 +66,9 @@ function smokeTest(win: BrowserWindow, resultFile: string): void {
   win.webContents.once('did-finish-load', async () => {
     for (let i = 0; i < 100; i++) {
       const ui = (await win.webContents.executeJavaScript(
-        `({ titlebar: !!document.querySelector('.titlebar'), tabs: document.querySelectorAll('.nav button').length, platform: window.boostline?.platform })`
-      )) as { titlebar: boolean; tabs: number; platform?: string }
-      if (ui.titlebar && ui.tabs === 4) {
+        `({ header: !!document.querySelector('.app-header'), sections: document.querySelectorAll('.rail .rail-item').length, platform: window.boostline?.platform })`
+      )) as { header: boolean; sections: number; platform?: string }
+      if (ui.header && ui.sections === 5) {
         clearTimeout(timeout)
         finish(ui.platform === process.platform, { ui })
         return

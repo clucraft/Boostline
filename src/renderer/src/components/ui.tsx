@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, X } from 'lucide-react'
+import { CaretDownIcon, CloseIcon } from './icons'
 import { useApp } from '../store'
 
 export interface MenuItem {
@@ -10,6 +10,8 @@ export interface MenuItem {
   disabled?: boolean
   separator?: boolean
   heading?: boolean
+  /** Read-only label/value row (e.g. vehicle details). */
+  value?: string
 }
 
 /** Fixed-position menu at a screen point; closes on outside click or Escape. */
@@ -64,6 +66,11 @@ export function Menu({
           <div key={i} className="menu-label">
             {item.label}
           </div>
+        ) : item.value !== undefined ? (
+          <div key={i} className="menu-info">
+            {item.label}
+            <b>{item.value}</b>
+          </div>
         ) : (
           <button
             key={i}
@@ -110,7 +117,7 @@ export function MenuButton({
       >
         {icon}
         {label}
-        <ChevronDown size={12} />
+        <CaretDownIcon size={12} weight="bold" />
       </button>
       {at && <Menu x={at.x} y={at.y} items={typeof items === 'function' ? items() : items} onClose={() => setAt(null)} />}
     </>
@@ -143,7 +150,7 @@ export function Modal({
         <div className="modal-head">
           {title}
           <button className="icon-btn" onClick={onClose} aria-label="Close">
-            <X size={16} />
+            <CloseIcon size={16} />
           </button>
         </div>
         <div className="modal-body">{children}</div>
@@ -263,7 +270,7 @@ export function Collapsible({ title, children, defaultOpen = false }: { title: s
     <div>
       <div className="collapsible-head" onClick={() => setOpen(!open)}>
         <span className="chevron">
-          <ChevronDown size={12} style={{ transform: open ? 'rotate(180deg)' : undefined }} />
+          <CaretDownIcon size={12} weight="bold" style={{ transform: open ? 'rotate(180deg)' : undefined }} />
         </span>
         {title}
       </div>
@@ -272,22 +279,22 @@ export function Collapsible({ title, children, defaultOpen = false }: { title: s
   )
 }
 
+/** Boostline mark: an amber tile with a rising trace. */
+export function LogoMark({ size = 26 }: { size?: number }) {
+  return (
+    <svg className="brand-mark" width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect width="32" height="32" rx="8" fill="#ffad33" />
+      <path d="M7 22.5 L12.5 17 L16.5 19.5 L24.5 10" fill="none" stroke="#1a0f00" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="24.5" cy="10" r="2.6" fill="#1a0f00" />
+    </svg>
+  )
+}
+
 export function Logo() {
   return (
-    <div className="logo">
-      <svg width="30" height="22" viewBox="0 0 30 22" aria-hidden>
-        <defs>
-          <linearGradient id="bl-g" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0" stopColor="#2b9bff" />
-            <stop offset="1" stopColor="#5fd0ff" />
-          </linearGradient>
-        </defs>
-        <path d="M2 18 L9 13 L14 15 L21 6 L28 3" fill="none" stroke="url(#bl-g)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="28" cy="3" r="2.2" fill="#5fd0ff" />
-      </svg>
-      <span>
-        Boost<span className="accent">line</span>
-      </span>
+    <div className="brand">
+      <LogoMark />
+      <span>boostline</span>
     </div>
   )
 }
