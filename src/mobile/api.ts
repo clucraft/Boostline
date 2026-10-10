@@ -56,6 +56,36 @@ async function readDocument(path: string): Promise<OpenedFile> {
   return { name: path.split('/').pop() ?? path, path, text: data as string }
 }
 
+/**
+ * The latest bmw-unified-db release. Uses the GitHub API, and falls back to GitHub's
+ * "latest release" redirects when the API refuses (it allows 60 anonymous requests per hour
+ * per IP address, which shared networks can use up).
+ */
+async function latestBmwDbRelease(): Promise<{ tag: string; assetUrl: string; sumsUrl?: string }> {
+  const api = await CapacitorHttp.get({
+    url: `https://api.github.com/repos/${BMW_DB_REPO}/releases/latest`,
+    headers: { Accept: 'application/vnd.github+json' }
+  }).catch(() => null)
+  if (api && api.status === 200) {
+    const release = (typeof api.data === 'string' ? JSON.parse(api.data) : api.data) as {
+      tag_name: string
+      assets: { name: string; browser_download_url: string }[]
+    }
+    const asset = release.assets.find((a) => a.name === BMW_DB_ASSET)
+    if (!asset) throw new Error(`Release ${release.tag_name} has no ${BMW_DB_ASSET}`)
+    return {
+      tag: release.tag_name,
+      assetUrl: asset.browser_download_url,
+      sumsUrl: release.assets.find((a) => a.name === 'SHA256SUMS')?.browser_download_url
+    }
+  }
+  const page = await CapacitorHttp.get({ url: `https://github.com/${BMW_DB_REPO}/releases/latest`, responseType: 'text' })
+  const tag = /\/releases\/tag\/([^/?#]+)/.exec(page.url ?? '')?.[1]
+  if (page.status !== 200 || !tag) throw new Error(`GitHub release lookup failed (${api?.status ?? 'no answer'})`)
+  const base = `https://github.com/${BMW_DB_REPO}/releases/download/${tag}`
+  return { tag: decodeURIComponent(tag), assetUrl: `${base}/${BMW_DB_ASSET}`, sumsUrl: `${base}/SHA256SUMS` }
+}
+
 /** Rows from the native SQLite plugin as objects keyed by column name. */
 const nativeSql: SqlReader = {
   all: async (sql, params = []) => {
@@ -91,7 +121,6 @@ export function createMobileApi(): BoostlineApi {
       await BoostlineData.close().catch(() => undefined)
     }
   }
-
 
   return {
     platform: Capacitor.getPlatform(),
@@ -132,31 +161,21 @@ export function createMobileApi(): BoostlineApi {
     bmwDataStatus: async () => summarizeBmwData(await loadBmwData()),
     bmwDataDownload: async () => {
       bmwProgress.emit('progress', { phase: 'release' } satisfies BmwDataProgress)
-      const res = await CapacitorHttp.get({
-        url: `https://api.github.com/repos/${BMW_DB_REPO}/releases/latest`,
-        headers: { Accept: 'application/vnd.github+json' }
-      })
-      if (res.status !== 200) throw new Error(`GitHub release lookup failed (${res.status})`)
-      const release = (typeof res.data === 'string' ? JSON.parse(res.data) : res.data) as {
-        tag_name: string
-        assets: { name: string; browser_download_url: string }[]
-      }
-      const asset = release.assets.find((a) => a.name === BMW_DB_ASSET)
-      if (!asset) throw new Error(`Release ${release.tag_name} has no ${BMW_DB_ASSET}`)
-      const sums = release.assets.find((a) => a.name === 'SHA256SUMS')
+      const release = await latestBmwDbRelease()
       let sha256: string | undefined
-      if (sums) {
-        const text = (await CapacitorHttp.get({ url: sums.browser_download_url, responseType: 'text' })).data as string
+      if (release.sumsUrl) {
+        const sums = await CapacitorHttp.get({ url: release.sumsUrl, responseType: 'text' }).catch(() => null)
+        const text = sums && sums.status === 200 ? String(sums.data) : ''
         sha256 = text.split('\n').find((l) => l.trim().endsWith(BMW_DB_ASSET))?.split(/\s+/)[0]?.toLowerCase()
       }
       const handle = await BoostlineData.addListener('progress', (p) => bmwProgress.emit('progress', p))
       try {
         const summary = await importWith(
           async () => {
-            await BoostlineData.openDownloaded({ url: asset.browser_download_url, sha256 })
+            await BoostlineData.openDownloaded({ url: release.assetUrl, sha256 })
             return true
           },
-          () => `bmw-unified-db ${release.tag_name}`
+          () => `bmw-unified-db ${release.tag}`
         )
         return summary!
       } finally {
