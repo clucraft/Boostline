@@ -302,7 +302,7 @@ export function DragPage() {
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 2fr)', gap: 12, flex: 'none' }}>
+          <div className="split-panels">
             <section className="card">
               <h3 className="card-title">
                 10 {splitStep} splits <span className="count-badge">time from start</span>

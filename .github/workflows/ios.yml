@@ -1,0 +1,43 @@
+name: iOS
+
+# Compile check for the iOS app: an unsigned simulator build of the web bundle plus the native
+# plugins. Runs on pushes to the mobile branch that touch the app, or by hand.
+on:
+  push:
+    branches: [mobile]
+    paths:
+      - 'ios/**'
+      - 'native/**'
+      - 'src/mobile/**'
+      - 'capacitor.config.ts'
+      - 'package.json'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run mobile:build
+      - run: npx cap sync ios
+      - name: Xcode version
+        run: xcodebuild -version
+      - name: Build for the iOS simulator (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build/xcodebuild.log | grep -E 'error:|warning: .*Boostline|BUILD (SUCCEEDED|FAILED)' || true
+          grep -q 'BUILD SUCCEEDED' build/xcodebuild.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xcodebuild-log
+          path: build/xcodebuild.log
+          if-no-files-found: ignore

@@ -28,8 +28,11 @@ let settingsCache: AppSettings | null = null
 export async function loadSettings(): Promise<AppSettings> {
   if (!settingsCache) {
     const stored = await readJson<Partial<AppSettings>>('settings.json')
+    const defaults = defaultSettings(DATA_DIR_LABEL)
+    // One Y axis per graph by default: a phone screen has no room for five.
+    defaults.logViewer.scaleLegends = false
     // The data folder is fixed on mobile.
-    settingsCache = { ...mergeSettings(defaultSettings(DATA_DIR_LABEL), stored ?? {}), dataDir: DATA_DIR_LABEL }
+    settingsCache = { ...mergeSettings(defaults, stored ?? {}), dataDir: DATA_DIR_LABEL }
   }
   return settingsCache
 }

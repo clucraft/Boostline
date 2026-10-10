@@ -1,1 +1,374 @@
-/* Phone and tablet layout (mobile app only). */
+/* Phone and tablet layout. Only the mobile app loads this file; the desktop app never does. */
+
+html,
+body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ------------------------------------------------------------- every device */
+
+/* Notch / status bar and home indicator. */
+.app-shell {
+  grid-template-rows: calc(var(--header-h) + env(safe-area-inset-top)) minmax(0, 1fr);
+}
+.app-header {
+  padding-top: env(safe-area-inset-top);
+  padding-right: max(14px, env(safe-area-inset-right));
+  padding-left: max(18px, env(safe-area-inset-left));
+}
+.rail {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+.toast-stack {
+  bottom: max(20px, env(safe-area-inset-bottom));
+}
+
+/* Charts: vertical swipes scroll the page, everything else goes to the chart. */
+.chart-host .u-over {
+  touch-action: pan-y;
+}
+
+/* No hover on touch screens: show what desktop reveals on hover, hide mouse hints. */
+@media (hover: none) {
+  .graph-tools,
+  .tile-actions {
+    opacity: 1;
+  }
+  .kbd,
+  .palette-key,
+  .viewer-footer .hint {
+    display: none;
+  }
+  /* iOS zooms into inputs with text smaller than 16 px. */
+  .input,
+  .select,
+  .palette-search input {
+    font-size: 16px;
+  }
+  .btn,
+  .chip,
+  .segmented button {
+    min-height: 36px;
+  }
+  .btn.sm {
+    min-height: 32px;
+  }
+  .icon-btn {
+    padding: 7px;
+  }
+}
+
+/* ------------------------------------------------------------------ phones */
+
+@media (max-width: 760px) {
+  :root {
+    --header-h: 52px;
+  }
+
+  /* Header on top, sections as a tab bar at the bottom. */
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: calc(var(--header-h) + env(safe-area-inset-top)) minmax(0, 1fr) auto;
+  }
+  .app-header {
+    grid-column: 1;
+    grid-row: 1;
+    gap: 8px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .app-main {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .rail {
+    grid-column: 1;
+    grid-row: 3;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 2px;
+    padding: 4px max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+    border-right: none;
+    border-top: 1px solid var(--border);
+  }
+  .rail-item {
+    flex: 1;
+    width: auto;
+    height: 54px;
+    font-size: 10.5px;
+  }
+  .rail-item.active::before {
+    left: 30%;
+    right: 30%;
+    top: -5px;
+    bottom: auto;
+    width: auto;
+    height: 3px;
+    border-radius: 0 0 2px 2px;
+  }
+  .rail-spacer,
+  .rail-version {
+    display: none;
+  }
+
+  .brand span {
+    display: none;
+  }
+  .app-header .pill,
+  .app-header .btn {
+    height: 34px;
+    padding: 0 11px;
+  }
+  /* Vehicle pill: icon only (tap it for the VIN and DME data). Capture: timer only. */
+  .vehicle-pill .mono,
+  .rec-samples {
+    display: none;
+  }
+  .app-header .btn-label {
+    display: none;
+  }
+  .pill.rec {
+    gap: 6px;
+  }
+
+  /* Pages scroll as a whole; side panels stack below the main content. */
+  .page {
+    padding: 14px max(12px, env(safe-area-inset-right)) 18px max(12px, env(safe-area-inset-left));
+    gap: 12px;
+    overflow-y: auto;
+  }
+  .page-toolbar {
+    gap: 8px;
+  }
+  .page-toolbar h1 {
+    font-size: 21px;
+  }
+  .page-toolbar .sub {
+    flex-basis: 100%;
+    order: 1;
+  }
+  .page-toolbar .spacer {
+    display: none;
+  }
+  .page-body {
+    flex-direction: column;
+    flex: none;
+    min-height: auto;
+  }
+  .page-main {
+    flex: none;
+    overflow: visible;
+  }
+  .page-main.scroll {
+    overflow: visible;
+    padding-right: 0;
+  }
+  .inspector {
+    width: auto;
+    overflow: visible;
+    padding-right: 0;
+  }
+  .card {
+    padding: 14px;
+  }
+
+  /* Live */
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .tile {
+    padding: 11px 12px;
+    min-height: 88px;
+  }
+  .tile-value .v {
+    font-size: 24px;
+  }
+  .tile-value.secondary .v {
+    font-size: 16px;
+  }
+  .tile-values {
+    gap: 12px;
+  }
+  .connect-cta {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px;
+  }
+  .connect-cta > div:nth-child(2) {
+    flex: 1 1 calc(100% - 60px) !important;
+  }
+  .connect-cta .btn {
+    flex: 1;
+  }
+  .live-page .logviewer {
+    flex: none;
+    height: 72vh;
+    min-height: 420px;
+  }
+
+  /* Graphs */
+  .graph {
+    min-height: 280px;
+  }
+  .graph-head {
+    flex-wrap: wrap;
+  }
+  .graph-tools {
+    margin-left: 0;
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
+  .graph-legend {
+    padding-left: 8px;
+  }
+  .graph.fullscreen {
+    inset: 0;
+    padding: max(14px, env(safe-area-inset-top)) 12px max(14px, env(safe-area-inset-bottom));
+    z-index: 60;
+  }
+  .viewer-footer {
+    gap: 6px;
+  }
+  .pull-bar .muted {
+    flex-basis: 100%;
+    order: 1;
+  }
+
+  /* Analyze */
+  .library {
+    width: auto;
+    max-height: 34vh;
+  }
+  .page-body > .logviewer {
+    flex: none;
+    height: 78vh;
+    min-height: 460px;
+  }
+  .log-chip {
+    max-width: 100%;
+    flex-basis: 100%;
+    order: 1;
+  }
+  .panel-header .actions {
+    margin-left: auto;
+  }
+
+  /* Heatmap: scroll the grid sideways rather than squeezing it. */
+  .hm-body {
+    flex-direction: column;
+  }
+  .hm-main {
+    width: 100%;
+    overflow-x: auto;
+  }
+  .hm-grid {
+    min-width: 560px;
+  }
+  .hm-side {
+    width: 100%;
+    position: static;
+  }
+  .hm-side .hm-detail {
+    margin-top: 8px;
+  }
+  .hm-min {
+    margin-left: 0;
+  }
+  .hm-toolbar .field {
+    flex-basis: 100%;
+  }
+  .logviewer .heatmap {
+    overflow: visible;
+  }
+  .page-body > .logviewer:has(.heatmap) {
+    height: auto;
+  }
+
+  /* Dyno / Drag */
+  .stepper {
+    flex-basis: 100%;
+    order: 2;
+  }
+  .step:not(.active) .step-label {
+    display: none;
+  }
+  .status-line {
+    flex-basis: 100%;
+    order: 3;
+  }
+  .page-toolbar .btn.primary,
+  .page-toolbar .btn.danger {
+    margin-left: auto;
+  }
+  .metrics {
+    gap: 8px;
+  }
+  .metric {
+    padding: 11px 12px;
+    min-height: 84px;
+  }
+  .metric .label {
+    font-size: 11.5px;
+  }
+  .metric .value {
+    font-size: 24px;
+  }
+  .metric .value small {
+    font-size: 11.5px;
+    margin-left: 3px;
+  }
+  .metric .sub {
+    font-size: 11px;
+  }
+  .result-chart {
+    min-height: 340px;
+  }
+  .split-panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bar-row {
+    grid-template-columns: 66px minmax(0, 1fr) 64px;
+  }
+
+  /* Settings */
+  .setting-row {
+    flex-wrap: wrap;
+  }
+  .setting-row .control {
+    width: 100%;
+  }
+
+  /* Dialogs and the channel picker fill the screen width. */
+  .modal,
+  .modal.wide {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+  .edit-channels-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .palette {
+    width: calc(100vw - 16px);
+    margin-top: calc(8px + env(safe-area-inset-top));
+    max-height: calc(100vh - 140px - env(safe-area-inset-top));
+  }
+  .menu {
+    max-width: calc(100vw - 16px);
+  }
+  .connect-menu {
+    width: calc(100vw - 16px);
+  }
+  .toast-stack {
+    left: 12px;
+    right: 12px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  .toast {
+    min-width: 0;
+    max-width: none;
+  }
+}

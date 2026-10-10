@@ -5,6 +5,9 @@ import { BMW_CATALOG } from '@shared/catalog'
 
 export const api = window.boostline
 
+/** Electron desktop app (as opposed to the iOS / Android app or a browser). */
+export const isDesktop = ['win32', 'darwin', 'linux'].includes(api.platform)
+
 export type Page = 'live' | 'analyze' | 'dyno' | 'drag' | 'settings'
 
 export interface Toast {
