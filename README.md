@@ -57,6 +57,10 @@ Boostline connects to your car over an ENET cable or an MHD / bootmod3 WiFi adap
 - **GPS speed calibration**: enter ECU vs. GPS speed points to correct speedometer error. Shows raw vs. calibrated speed curves.
 - Saved profiles store the calibration and environment (altitude, temperature, humidity).
 
+### iPhone and iPad (in development)
+
+An iOS version with the same screens is being built and isn't released yet. See [docs/ios.md](docs/ios.md).
+
 ### Simulator
 
 A physics-based B58 drive cycle (launches, shifts, a 4th-gear pull, boost spool, knock events) lets you try every screen without a car.

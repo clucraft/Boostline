@@ -61,6 +61,69 @@ body {
   }
 }
 
+/* ------------------------------------------- phones and tablets in portrait */
+
+@media (max-width: 1100px) {
+  /* Pages scroll as a whole; side panels stack below the main content. */
+  .page {
+    padding: 16px max(18px, env(safe-area-inset-right)) 20px max(18px, env(safe-area-inset-left));
+    gap: 14px;
+    overflow-y: auto;
+  }
+  .page-toolbar {
+    gap: 8px;
+  }
+  .page-toolbar h1 {
+    font-size: 21px;
+  }
+  .page-toolbar .sub {
+    flex-basis: 100%;
+    order: 1;
+  }
+  .page-toolbar .spacer {
+    display: none;
+  }
+  .page-body {
+    flex-direction: column;
+    flex: none;
+    min-height: auto;
+  }
+  .page-main {
+    flex: none;
+    overflow: visible;
+  }
+  .page-main.scroll {
+    overflow: visible;
+    padding-right: 0;
+  }
+  .inspector {
+    width: auto;
+    overflow: visible;
+    padding-right: 0;
+  }
+  .card {
+    padding: 14px;
+  }
+
+  .library {
+    width: auto;
+    max-height: 34vh;
+  }
+  .page-body > .logviewer {
+    flex: none;
+    height: 78vh;
+    min-height: 460px;
+  }
+  .graph-head {
+    flex-wrap: wrap;
+  }
+  .live-page .logviewer {
+    flex: none;
+    height: 72vh;
+    min-height: 420px;
+  }
+}
+
 /* ------------------------------------------------------------------ phones */
 
 @media (max-width: 760px) {
@@ -134,45 +197,9 @@ body {
     gap: 6px;
   }
 
-  /* Pages scroll as a whole; side panels stack below the main content. */
   .page {
     padding: 14px max(12px, env(safe-area-inset-right)) 18px max(12px, env(safe-area-inset-left));
     gap: 12px;
-    overflow-y: auto;
-  }
-  .page-toolbar {
-    gap: 8px;
-  }
-  .page-toolbar h1 {
-    font-size: 21px;
-  }
-  .page-toolbar .sub {
-    flex-basis: 100%;
-    order: 1;
-  }
-  .page-toolbar .spacer {
-    display: none;
-  }
-  .page-body {
-    flex-direction: column;
-    flex: none;
-    min-height: auto;
-  }
-  .page-main {
-    flex: none;
-    overflow: visible;
-  }
-  .page-main.scroll {
-    overflow: visible;
-    padding-right: 0;
-  }
-  .inspector {
-    width: auto;
-    overflow: visible;
-    padding-right: 0;
-  }
-  .card {
-    padding: 14px;
   }
 
   /* Live */
@@ -204,18 +231,10 @@ body {
   .connect-cta .btn {
     flex: 1;
   }
-  .live-page .logviewer {
-    flex: none;
-    height: 72vh;
-    min-height: 420px;
-  }
 
   /* Graphs */
   .graph {
     min-height: 280px;
-  }
-  .graph-head {
-    flex-wrap: wrap;
   }
   .graph-tools {
     margin-left: 0;
@@ -239,15 +258,6 @@ body {
   }
 
   /* Analyze */
-  .library {
-    width: auto;
-    max-height: 34vh;
-  }
-  .page-body > .logviewer {
-    flex: none;
-    height: 78vh;
-    min-height: 460px;
-  }
   .log-chip {
     max-width: 100%;
     flex-basis: 100%;

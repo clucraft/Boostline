@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- **iOS app (in development, not released yet).** The same screens and analysis as the desktop app, with a phone layout (tab bar at the bottom, touch controls for graphs). It connects through the MHD and bootmod3 WiFi adapters, saves logs to the Files app and imports the BMW DME data on the phone. Not yet tested on a car; see [docs/ios.md](docs/ios.md).
+
 ## [0.5.0] - 2026-10-09
 
 A new look and a new layout. Every feature from 0.4 is still there; some have moved.
