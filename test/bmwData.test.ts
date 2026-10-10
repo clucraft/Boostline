@@ -3,10 +3,10 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { decodeMeasurement, normalizeSgbdUnit, parseSgfunktionenRow } from '../src/main/bmwdata/sgbdRow'
+import { decodeMeasurement, normalizeSgbdUnit, parseSgfunktionenRow } from '../src/core/bmwdata/sgbdRow'
 import { importBmwUnifiedDb } from '../src/main/bmwdata/importDb'
-import { buildDmeChannelSet, measurementName, resolveDme } from '../src/main/bmwdata/channels'
-import type { BmwDme, BmwMeasurement } from '../src/main/bmwdata/types'
+import { buildDmeChannelSet, measurementName, resolveDme } from '../src/core/bmwdata/channels'
+import type { BmwDme, BmwMeasurement } from '../src/core/bmwdata/types'
 
 // All DIDs, scalings and descriptions below are invented test data in the shape of
 // an SGBD SG_FUNKTIONEN table; no BMW data is included in the repository.

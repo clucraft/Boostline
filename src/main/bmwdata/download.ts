@@ -7,7 +7,7 @@ import { pipeline } from 'node:stream/promises'
 import type { ReadableStream as WebReadableStream } from 'node:stream/web'
 import { createGunzip } from 'node:zlib'
 import { importBmwUnifiedDb } from './importDb'
-import type { BmwDataPack } from './types'
+import type { BmwDataPack } from '@core/bmwdata/types'
 
 // Downloads the latest bmw-unified-db release (bmw.sqlite.gz, ~130 MB), checks it against
 // the release's SHA256SUMS, unpacks it to a temp file, imports the DME tables and deletes

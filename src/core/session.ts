@@ -1,16 +1,13 @@
-import { EventEmitter } from 'node:events'
-import { performance } from 'node:perf_hooks'
-import type { ChannelDef, ConnectionStatus, ConnectOptions, LiveBatch, RecordingInfo } from '@shared/types'
+import { EventEmitter } from 'events'
+import type { AppSettings, ChannelDef, ConnectionStatus, ConnectOptions, LiveBatch, RecordingInfo } from '@shared/types'
 import { CH } from '@shared/types'
 import { MAX_LIVE_CHANNELS } from '@shared/catalog'
 import type { SampleFrame, StreamHandle, VehicleAdapter } from './vehicle/adapter'
 import { SimulatorAdapter } from './vehicle/simulator'
 import { EnetAdapter } from './vehicle/enet'
 import { Recorder } from './recorder'
-import { dataPath, loadSettings } from './storage'
-import { loadBmwData } from './bmwdata/store'
 import { buildDmeChannelSet, resolveDme } from './bmwdata/channels'
-import type { DmeDataResolver } from './bmwdata/types'
+import type { BmwDataPack, DmeDataResolver } from './bmwdata/types'
 
 /** Always sampled when available: the Dyno, Drag and WOT tools depend on them. */
 const REQUIRED = [CH.rpm, CH.speed, CH.pedal, CH.gear]
@@ -19,6 +16,14 @@ const MAX_STREAM = MAX_LIVE_CHANNELS + 30
 const FLUSH_MS = 50
 const AUTO_RECORD_PEDAL = 85
 const AUTO_RECORD_TAIL_S = 3
+
+/** What the session needs from the app around it (settings, imported data, folders). */
+export interface SessionHost {
+  loadSettings(): Promise<AppSettings>
+  loadBmwData(): Promise<BmwDataPack | null>
+  /** Creates the folder if needed and returns its path. */
+  dataPath(folder: 'Logs' | 'Definitions'): Promise<string>
+}
 
 export interface SessionEvents {
   status: [ConnectionStatus]
@@ -44,12 +49,16 @@ export class Session extends EventEmitter<SessionEvents> {
   private streamOffset = 0
   private batchT: number[] = []
   private batchRows: number[][] = []
-  private flushTimer: NodeJS.Timeout | null = null
+  private flushTimer: ReturnType<typeof setInterval> | null = null
   private rateWindow: number[] = []
   private autoRecord = false
   private wotLastSeen = -Infinity
   private autoRecording = false
   private current: ConnectionStatus = { state: 'disconnected' }
+
+  constructor(private readonly host: SessionHost) {
+    super()
+  }
 
   status(): ConnectionStatus {
     return this.current
@@ -66,9 +75,9 @@ export class Session extends EventEmitter<SessionEvents> {
 
   async connect(opts: ConnectOptions): Promise<ConnectionStatus> {
     await this.disconnect()
-    const settings = await loadSettings()
+    const settings = await this.host.loadSettings()
     this.autoRecord = settings.autoRecordWot
-    const bmwData = await loadBmwData()
+    const bmwData = await this.host.loadBmwData()
     const dmeData: DmeDataResolver = (index) => {
       const dme = resolveDme(bmwData, settings.bmwDme, index)
       return dme ? buildDmeChannelSet(dme) : undefined
@@ -80,7 +89,7 @@ export class Session extends EventEmitter<SessionEvents> {
             kind: opts.kind,
             host: opts.host,
             port: opts.port,
-            definitionsDir: await dataPath('Definitions'),
+            definitionsDir: await this.host.dataPath('Definitions'),
             dmeData,
             log: (msg: string) => this.emit('log', msg)
           })
@@ -220,7 +229,7 @@ export class Session extends EventEmitter<SessionEvents> {
       const meta: Record<string, string> = { adapter: this.current.adapterLabel ?? '' }
       if (this.current.vin) meta.vin = this.current.vin
       if (this.current.ecu?.softwareVersion) meta.ecu = this.current.ecu.softwareVersion
-      this.recorder = new Recorder(await dataPath('Logs'), channels, meta)
+      this.recorder = new Recorder(await this.host.dataPath('Logs'), channels, meta)
       this.setStatus({ recording: this.recordingInfo() })
     }
     return this.recordingInfo()!

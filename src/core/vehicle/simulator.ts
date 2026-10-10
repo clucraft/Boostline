@@ -1,4 +1,3 @@
-import { performance } from 'node:perf_hooks'
 import type { ChannelDef } from '@shared/types'
 import { BMW_CATALOG } from '@shared/catalog'
 import type { SampleFrame, StreamHandle, VehicleAdapter, VehicleInfo } from './adapter'

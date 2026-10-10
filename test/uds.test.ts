@@ -8,7 +8,7 @@ import {
   parseReadDataByIdentifierResponse,
   type UdsRequestOptions,
   type UdsTransport
-} from '../src/main/vehicle/uds'
+} from '../src/core/vehicle/uds'
 
 const hex = (s: string): Buffer => Buffer.from(s.replace(/\s+/g, ''), 'hex')
 

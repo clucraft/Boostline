@@ -49,7 +49,6 @@
  *
  * Only services on the UDS allowlist (uds.ts) can be sent.
  */
-import { performance } from 'node:perf_hooks'
 import type { AdapterKind, ChannelDef } from '@shared/types'
 import type { DmeChannelSet, DmeDataResolver } from '../bmwdata/types'
 import type { SampleFrame, StreamHandle, VehicleAdapter, VehicleInfo } from './adapter'

@@ -2,13 +2,18 @@ import { app, BrowserWindow, shell } from 'electron'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { IPC } from '@shared/ipc'
+import { setRuntime } from '@core/runtime'
+import { Session } from '@core/session'
 import { registerIpc } from './ipc'
-import { Session } from './session'
+import { nodeRuntime } from './nodeRuntime'
+import { dataPath, loadSettings } from './storage'
+import { loadBmwData } from './bmwdata/store'
 
 const isMac = process.platform === 'darwin'
 
 let mainWindow: BrowserWindow | null = null
-const session = new Session()
+setRuntime(nodeRuntime)
+const session = new Session({ loadSettings, loadBmwData, dataPath })
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({

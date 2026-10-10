@@ -11,7 +11,7 @@
 // UDP (optional, 127.0.0.1): answers vehicle identification requests.
 import dgram from 'node:dgram'
 import net from 'node:net'
-import { HsfzControl, HsfzFrameReader, encodeDiagnosticFrame, encodeFrame } from '../src/main/vehicle/hsfz'
+import { HsfzControl, HsfzFrameReader, encodeDiagnosticFrame, encodeFrame } from '../src/core/vehicle/hsfz'
 
 export const FAKE_VIN = 'WBATEST0000000001'
 export const FAKE_MAC = '001A37C0FFEE'

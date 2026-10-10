@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SimEngine } from '../src/main/vehicle/simulator'
+import { SimEngine } from '../src/core/vehicle/simulator'
 import { BMW_CATALOG } from '../src/shared/catalog'
 
 /** Runs the simulator for `seconds` at 50 Hz and returns every snapshot. */

@@ -7,7 +7,7 @@ import {
   encodeDiscoveryRequest,
   listIpv4Interfaces,
   parseDiscoveryResponse
-} from '../src/main/vehicle/discovery'
+} from '../src/core/vehicle/discovery'
 import {
   HSFZ_MAX_PAYLOAD,
   HsfzConnection,
@@ -22,7 +22,7 @@ import {
   encodeDiagnosticFrame,
   encodeFrame,
   type TrafficDirection
-} from '../src/main/vehicle/hsfz'
+} from '../src/core/vehicle/hsfz'
 import { FAKE_MAC, FAKE_VIN, FakeGateway, type FakeGatewayOptions } from './fakeGateway'
 
 const hex = (s: string): Buffer => Buffer.from(s.replace(/\s+/g, ''), 'hex')

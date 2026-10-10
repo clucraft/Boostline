@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
-import type { BmwDataPack } from './types'
+import type { BmwDataPack } from '@core/bmwdata/types'
 import type { BmwDataSummary } from '@shared/ipc'
 
 // The imported DME data lives in the app's userData folder (never in the repo or the

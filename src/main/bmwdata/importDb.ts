@@ -4,8 +4,8 @@ import { join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { createGunzip } from 'node:zlib'
 import { DatabaseSync } from 'node:sqlite'
-import type { BmwDataPack, BmwDme } from './types'
-import { parseSgfunktionenRow } from './sgbdRow'
+import type { BmwDataPack, BmwDme } from '@core/bmwdata/types'
+import { parseSgfunktionenRow } from '@core/bmwdata/sgbdRow'
 
 // Imports DME measurement tables from a bmw-unified-db SQLite file
 // (https://github.com/gediz/bmw-unified-db, tables ecu_variant / ecu_table / table_row /
