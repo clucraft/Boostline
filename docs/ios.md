@@ -60,12 +60,16 @@ after 7 days (just run it from Xcode again).
 5. On the iPhone: **Settings → General → VPN & Device Management** → trust your developer
    certificate, and turn on **Developer Mode** if iOS asks.
 
-### Option B: TestFlight (no Mac needed, $99/year)
+### Option B: TestFlight (set up)
 
-With a paid Apple Developer Program membership, GitHub Actions can build and upload the app
-to TestFlight, and you install it from the TestFlight app. This needs a one-time setup of
-signing certificates and an App Store Connect API key as repository secrets; it isn't set up
-yet.
+The GitHub workflow **TestFlight** builds the app, has Apple sign it (cloud-managed
+certificates, through an App Store Connect API key) and uploads it to App Store Connect. It
+runs when a tag like `ios-v0.5.0-2` is pushed; the build number is the workflow's run number.
+
+It uses four repository secrets: `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID` and
+`ASC_KEY_P8` (the contents of the App Store Connect API key file, Admin access). After Apple
+has processed a build (10–30 minutes), it appears in the **TestFlight** app on the phones of
+the testers in the app's **Internal Testing** group.
 
 ## Developing
 
