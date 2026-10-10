@@ -143,6 +143,7 @@ public class BoostlineNetPlugin: CAPPlugin, CAPBridgedPlugin {
         var result: [String: Any] = [:]
         if let value = env["BOOSTLINE_AUTOCONNECT"] { result["autoconnect"] = value }
         if let value = env["BOOSTLINE_CAPTURE_SECONDS"] { result["captureSeconds"] = value }
+        if let value = env["BOOSTLINE_IMPORT_BMW"] { result["importBmw"] = value }
         call.resolve(result)
     }
 

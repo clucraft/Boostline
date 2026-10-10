@@ -126,11 +126,13 @@ export function SettingsPage() {
                   {probe.capturePath && (
                     <div className="row">
                       <span className="muted small mono" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {probe.capturePath}
+                        {isDesktop ? probe.capturePath : `Saved to Files › Boostline › ${probe.capturePath}`}
                       </span>
-                      <button className="btn sm" onClick={() => api.showInFolder(probe.capturePath!)}>
-                        <SearchIcon size={14} /> Show file
-                      </button>
+                      {isDesktop && (
+                        <button className="btn sm" onClick={() => api.showInFolder(probe.capturePath!)}>
+                          <SearchIcon size={14} /> Show file
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

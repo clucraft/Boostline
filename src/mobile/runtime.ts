@@ -14,6 +14,9 @@ const WRITE_FLUSH_BYTES = 64 * 1024
 
 type Listener = (...args: never[]) => void
 
+/** Traffic counters (diagnostics and the CI launch test). */
+export const netStats = { connects: 0, writes: 0, bytesOut: 0, dataEvents: 0, bytesIn: 0, closes: 0 }
+
 /** A TCP socket backed by the native plugin, with the events of Node's net.Socket. */
 class NativeTcpSocket implements TcpSocket {
   private readonly listeners = new Map<string, { fn: Listener; once: boolean }[]>()
@@ -29,6 +32,7 @@ class NativeTcpSocket implements TcpSocket {
           return
         }
         this.id = id
+        netStats.connects++
         sockets.set(id, this)
         for (const data of this.pendingWrites) this.write(data)
         this.pendingWrites = []
@@ -65,6 +69,8 @@ class NativeTcpSocket implements TcpSocket {
       this.pendingWrites.push(data)
       return true
     }
+    netStats.writes++
+    netStats.bytesOut += data.length
     void BoostlineNet.tcpWrite({ id: this.id, data: Buffer.from(data).toString('base64') }).catch((err: Error) => this.fail(err.message))
     return true
   }
@@ -85,7 +91,11 @@ class NativeTcpSocket implements TcpSocket {
 
   /** Data from the native side. */
   receive(base64: string): void {
-    if (!this.closed) this.emit('data', Buffer.from(base64, 'base64'))
+    if (this.closed) return
+    const chunk = Buffer.from(base64, 'base64')
+    netStats.dataEvents++
+    netStats.bytesIn += chunk.length
+    this.emit('data', chunk)
   }
 
   /** The native side closed the connection (error = it failed). */
@@ -115,7 +125,10 @@ function listen(): void {
   if (listening || !Capacitor.isNativePlatform()) return
   listening = true
   void BoostlineNet.addListener('tcpData', (e) => sockets.get(e.id)?.receive(e.data))
-  void BoostlineNet.addListener('tcpClose', (e) => sockets.get(e.id)?.fail(e.error, e.code))
+  void BoostlineNet.addListener('tcpClose', (e) => {
+    netStats.closes++
+    sockets.get(e.id)?.fail(e.error, e.code)
+  })
 }
 
 let interfaces: Record<string, NetworkInterfaceInfo[]> = {}

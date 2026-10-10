@@ -12,7 +12,7 @@ export interface BoostlineNetPlugin {
   /** IPv4 addresses of the device's interfaces (WiFi, USB Ethernet…). */
   interfaces(): Promise<{ interfaces: { name: string; address: string; netmask: string; internal: boolean }[] }>
   /** CI test hook: launch environment (see src/mobile/smoke.ts). Empty in normal use. */
-  launchOptions(): Promise<{ autoconnect?: string; captureSeconds?: string }>
+  launchOptions(): Promise<{ autoconnect?: string; captureSeconds?: string; importBmw?: string }>
   addListener(event: 'tcpData', listener: (e: { id: string; data: string }) => void): Promise<PluginListenerHandle>
   addListener(event: 'tcpClose', listener: (e: { id: string; error?: string; code?: string }) => void): Promise<PluginListenerHandle>
 }
