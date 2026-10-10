@@ -1,0 +1,85 @@
+name: TestFlight
+
+# Builds the iOS app, signs it with Apple's cloud-managed certificates (through the App Store
+# Connect API key) and uploads it to App Store Connect, where it shows up in TestFlight.
+# Runs when a tag like ios-v0.5.0-1 is pushed. Needs the repository secrets APPLE_TEAM_ID,
+# ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8 (see docs/ios.md).
+on:
+  push:
+    tags: ['ios-v*']
+
+jobs:
+  upload:
+    runs-on: macos-latest
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - name: Check the signing secrets
+        run: |
+          for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID; do
+            [ -n "${!name}" ] || { echo "Missing repository secret $name"; exit 1; }
+          done
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run mobile:build
+      - run: npx cap sync ios
+      - name: Install the App Store Connect API key
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          [ -n "$ASC_KEY_P8" ] || { echo "Missing repository secret ASC_KEY_P8"; exit 1; }
+          printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+          grep -q 'BEGIN PRIVATE KEY' "$RUNNER_TEMP/AuthKey.p8" || { echo "ASC_KEY_P8 doesn't look like a .p8 key (BEGIN PRIVATE KEY line missing)"; exit 1; }
+      - name: Xcode version
+        run: xcodebuild -version
+      - name: Archive
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Boostline.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            archive 2>&1 | tee "$RUNNER_TEMP/archive.log" | grep -E 'error:|ARCHIVE (SUCCEEDED|FAILED)' || true
+          grep -q 'ARCHIVE SUCCEEDED' "$RUNNER_TEMP/archive.log"
+      - name: Sign and upload to App Store Connect
+        run: |
+          set -o pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Boostline.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee "$RUNNER_TEMP/export.log" | grep -vE '^\s*$' | tail -n 40
+          grep -qE 'EXPORT SUCCEEDED|Upload succeeded|Uploaded' "$RUNNER_TEMP/export.log"
+          echo "Build $GITHUB_RUN_NUMBER uploaded. It appears in App Store Connect → TestFlight after Apple's processing (usually 10–30 minutes)."
+      - name: Remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: testflight-logs
+          path: |
+            ${{ runner.temp }}/archive.log
+            ${{ runner.temp }}/export.log
+          if-no-files-found: ignore
