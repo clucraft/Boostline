@@ -11,6 +11,8 @@ export interface BoostlineNetPlugin {
   tcpClose(opts: { id: string }): Promise<void>
   /** IPv4 addresses of the device's interfaces (WiFi, USB Ethernet…). */
   interfaces(): Promise<{ interfaces: { name: string; address: string; netmask: string; internal: boolean }[] }>
+  /** CI test hook: launch environment (see src/mobile/smoke.ts). Empty in normal use. */
+  launchOptions(): Promise<{ autoconnect?: string; captureSeconds?: string }>
   addListener(event: 'tcpData', listener: (e: { id: string; data: string }) => void): Promise<PluginListenerHandle>
   addListener(event: 'tcpClose', listener: (e: { id: string; error?: string; code?: string }) => void): Promise<PluginListenerHandle>
 }
@@ -42,6 +44,7 @@ export const BoostlineNet = registerPlugin<BoostlineNetPlugin>('BoostlineNet', {
     tcpWrite: unavailable,
     tcpClose: unavailable,
     interfaces: async () => ({ interfaces: [] }),
+    launchOptions: async () => ({}),
     addListener: async () => ({ remove: async () => undefined })
   })
 })

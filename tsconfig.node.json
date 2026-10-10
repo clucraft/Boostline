@@ -16,5 +16,6 @@
     "baseUrl": ".",
     "paths": { "@shared/*": ["src/shared/*"], "@core/*": ["src/core/*"] }
   },
-  "include": ["electron.vite.config.ts", "vitest.config.ts", "src/main/**/*", "src/preload/**/*", "src/shared/**/*", "src/core/**/*", "test/**/*"]
+  "include": ["electron.vite.config.ts", "vitest.config.ts", "src/main/**/*", "src/preload/**/*", "src/shared/**/*", "src/core/**/*", "test/**/*"],
+  "exclude": ["test/mobileRuntime.test.ts"]
 }

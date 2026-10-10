@@ -12,7 +12,8 @@ public class BoostlineNetPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "tcpConnect", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "tcpWrite", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "tcpClose", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "interfaces", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "interfaces", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "launchOptions", returnType: CAPPluginReturnPromise)
     ]
 
     /// All connection state is touched on this queue only.
@@ -133,6 +134,16 @@ public class BoostlineNetPlugin: CAPPlugin, CAPBridgedPlugin {
             freeifaddrs(head)
         }
         call.resolve(["interfaces": list])
+    }
+
+    /// Test hook for CI (src/mobile/smoke.ts): environment variables passed at launch, e.g.
+    /// SIMCTL_CHILD_BOOSTLINE_AUTOCONNECT=... xcrun simctl launch ... Empty in normal use.
+    @objc func launchOptions(_ call: CAPPluginCall) {
+        let env = ProcessInfo.processInfo.environment
+        var result: [String: Any] = [:]
+        if let value = env["BOOSTLINE_AUTOCONNECT"] { result["autoconnect"] = value }
+        if let value = env["BOOSTLINE_CAPTURE_SECONDS"] { result["captureSeconds"] = value }
+        call.resolve(result)
     }
 
     // MARK: - Internals
