@@ -4,6 +4,19 @@ The iOS app is the same Boostline: the same screens, the same connection and pro
 and the same dyno, drag and heatmap analysis. It lives on the `mobile` branch until it has been
 tested on a car.
 
+## Status
+
+Checked automatically on every push to `mobile` (GitHub workflow **iOS**), in an iPhone Simulator:
+
+- The app builds (Xcode 26) and starts.
+- It connects over TCP, through the native Swift socket code, to the fake BMW gateway used by
+  the unit tests: identifies the car, streams at about 45 Hz and saves a CSV log with real values.
+- **Download & import** of the BMW DME data works on the phone: 130 MB download, checksum,
+  unpack, import (26 engine ECUs, 12,541 measurements in about 5 seconds).
+
+Not checked yet: a real iPhone, a real car, the MHD / bootmod3 adapters, the Local Network
+permission prompt, and the ENET cable.
+
 ## What works and what's different
 
 | | iPhone / iPad |
