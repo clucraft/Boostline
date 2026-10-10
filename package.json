@@ -12,7 +12,10 @@
     "start": "electron-vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.mobile.json",
+    "mobile:dev": "vite --config vite.mobile.config.ts",
+    "mobile:build": "vite build --config vite.mobile.config.ts",
+    "mobile:sync": "vite build --config vite.mobile.config.ts && cap sync ios",
     "dist": "electron-vite build && electron-builder --win --x64 --publish never",
     "dist:mac": "electron-vite build && electron-builder --mac --universal --publish never"
   },
@@ -60,13 +63,21 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@capacitor-community/keep-awake": "^8.0.1",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.4",
+    "@capacitor/ios": "^8.5.3",
+    "@capacitor/share": "^8.0.3",
     "@types/node": "^24.19.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "buffer": "^6.0.3",
     "electron": "^44.7.0",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
+    "events": "^3.3.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.7",
     "vitest": "^5.0.3"

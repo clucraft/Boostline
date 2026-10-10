@@ -92,18 +92,18 @@ describe('importBmwUnifiedDb', () => {
   })
   afterAll(() => rmSync(dir, { recursive: true, force: true }))
 
-  it('extracts readable DME measurements, indexes, engines and chassis', () => {
-    const pack = importBmwUnifiedDb(path, 'test')
+  it('extracts readable DME measurements, indexes, engines and chassis', async () => {
+    const pack = await importBmwUnifiedDb(path, 'test')
     expect(pack.dmes).toHaveLength(1)
     const dme = pack.dmes[0]
     expect(dme).toMatchObject({ sgbd: 'testdme', name: 'Test DME', chassis: ['X99'], engines: ['X58'], diagAddress: 0x12, sgbdIndexes: [0xf9999] })
     expect(dme.measurements.map((m) => m.did)).toEqual([0x7001, 0x7003])
   })
 
-  it('rejects files that are not bmw-unified-db databases', () => {
+  it('rejects files that are not bmw-unified-db databases', async () => {
     const other = join(dir, 'other.sqlite')
     new DatabaseSync(other).close()
-    expect(() => importBmwUnifiedDb(other)).toThrow(/Not a bmw-unified-db/)
+    await expect(importBmwUnifiedDb(other)).rejects.toThrow(/Not a bmw-unified-db/)
   })
 })
 

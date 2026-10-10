@@ -78,7 +78,7 @@ export async function downloadAndImportBmwDb(onProgress: (p: DownloadProgress) =
     onProgress({ phase: 'unpack' })
     await pipeline(createReadStream(gz), createGunzip(), createWriteStream(sqlite), { signal })
     onProgress({ phase: 'import' })
-    const pack = importBmwUnifiedDb(sqlite, `bmw-unified-db ${release.tag}`)
+    const pack = await importBmwUnifiedDb(sqlite, `bmw-unified-db ${release.tag}`)
     onProgress({ phase: 'done' })
     return pack
   } finally {

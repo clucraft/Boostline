@@ -2,7 +2,6 @@ import { app } from 'electron'
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import type { BmwDataPack } from '@core/bmwdata/types'
-import type { BmwDataSummary } from '@shared/ipc'
 
 // The imported DME data lives in the app's userData folder (never in the repo or the
 // installer): it is derived from BMW diagnostic data the user downloaded themselves.
@@ -34,18 +33,4 @@ export async function clearBmwData(): Promise<void> {
   cache = null
 }
 
-export function summarizeBmwData(pack: BmwDataPack | null): BmwDataSummary | null {
-  if (!pack) return null
-  return {
-    source: pack.source,
-    importedAt: pack.importedAt,
-    dmes: pack.dmes.map((d) => ({
-      sgbd: d.sgbd,
-      name: d.name,
-      engines: d.engines,
-      chassis: d.chassis,
-      measurements: d.measurements.length,
-      autoDetect: d.sgbdIndexes.length > 0
-    }))
-  }
-}
+export { summarizeBmwData } from '@core/bmwdata/summary'
