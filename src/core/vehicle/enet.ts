@@ -93,6 +93,8 @@ export interface EnetAdapterOptions {
    * the local network on the HSFZ port (the iOS app: iOS doesn't allow the UDP broadcast).
    */
   scanSubnet?: boolean
+  /** Timeout of the first identification requests (VIN), default 1500 ms. */
+  identTimeoutMs?: number
   log?: (message: string) => void
 }
 
@@ -551,7 +553,7 @@ export class EnetAdapter implements VehicleAdapter {
   }
 
   private async identify(conn: HsfzConnection, host: string, port: number, signal?: AbortSignal): Promise<Session> {
-    const uds = new UdsClient(conn, { timeoutMs: IDENT_TIMEOUT_MS })
+    const uds = new UdsClient(conn, { timeoutMs: this.opts.identTimeoutMs ?? IDENT_TIMEOUT_MS })
     const dme = ECU_ADDRESS.DME
     const log = (m: string): void => this.log(m)
 

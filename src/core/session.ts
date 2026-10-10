@@ -24,7 +24,7 @@ export interface SessionHost {
   /** Creates the folder if needed and returns its path. */
   dataPath(folder: 'Logs' | 'Definitions'): Promise<string>
   /** Extra options for network adapters (the iOS app scans the WiFi subnet). */
-  enetOptions?: { scanSubnet?: boolean }
+  enetOptions?: { scanSubnet?: boolean; identTimeoutMs?: number }
 }
 
 export interface SessionEvents {
