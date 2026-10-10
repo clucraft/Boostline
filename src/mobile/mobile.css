@@ -196,6 +196,12 @@ body {
   .pill.rec {
     gap: 6px;
   }
+  /* "MHD WiFi · 192.168.4.1" would push the other controls off screen. */
+  .app-header button.pill b {
+    max-width: 32vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   .page {
     padding: 14px max(12px, env(safe-area-inset-right)) 18px max(12px, env(safe-area-inset-left));

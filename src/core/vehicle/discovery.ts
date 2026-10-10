@@ -114,6 +114,29 @@ export function candidateHosts(interfaces: Ipv4Interface[] = listIpv4Interfaces(
   return unique([...guesses, ...DEFAULT_ADAPTER_HOSTS])
 }
 
+/**
+ * Every host address of the local networks (WiFi / Ethernet; not link-local), for a TCP scan
+ * when neither discovery nor the likely addresses find the adapter. Larger networks are
+ * scanned only in the /24 around this device's own address.
+ */
+export function subnetHosts(interfaces: Ipv4Interface[] = listIpv4Interfaces()): string[] {
+  const out: string[] = []
+  for (const i of interfaces) {
+    if (i.internal || i.linkLocal) continue
+    const address = ipToInt(i.address)
+    let mask = ipToInt(i.netmask)
+    if (mask === 0xffffffff || mask === 0xfffffffe) continue
+    if (~mask >>> 0 > 0xff) mask = 0xffffff00
+    const network = (address & mask) >>> 0
+    const size = (~mask >>> 0) + 1
+    for (let k = 1; k < size - 1; k++) {
+      const host = (network + k) >>> 0
+      if (host !== address) out.push(intToIp(host))
+    }
+  }
+  return unique(out)
+}
+
 // ------------------------------------------------------------------ UDP identification
 
 export function encodeDiscoveryRequest(): Buffer {

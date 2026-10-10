@@ -23,6 +23,8 @@ export interface SessionHost {
   loadBmwData(): Promise<BmwDataPack | null>
   /** Creates the folder if needed and returns its path. */
   dataPath(folder: 'Logs' | 'Definitions'): Promise<string>
+  /** Extra options for network adapters (the iOS app scans the WiFi subnet). */
+  enetOptions?: { scanSubnet?: boolean }
 }
 
 export interface SessionEvents {
@@ -91,6 +93,7 @@ export class Session extends EventEmitter<SessionEvents> {
             port: opts.port,
             definitionsDir: await this.host.dataPath('Definitions'),
             dmeData,
+            ...this.host.enetOptions,
             log: (msg: string) => this.emit('log', msg)
           })
     this.adapter = adapter

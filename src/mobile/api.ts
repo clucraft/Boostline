@@ -66,7 +66,7 @@ const nativeSql: SqlReader = {
 
 /** The app's API (the same one the desktop preload exposes), backed by the in-app session. */
 export function createMobileApi(): BoostlineApi {
-  const session = new Session({ loadSettings, loadBmwData, dataPath })
+  const session = new Session({ loadSettings, loadBmwData, dataPath, enetOptions: { scanSubnet: true } })
   const bmwProgress = new EventEmitter()
   session.on('log', (msg) => console.log(`[session] ${msg}`))
 

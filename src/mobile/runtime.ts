@@ -124,7 +124,8 @@ let interfaces: Record<string, NetworkInterfaceInfo[]> = {}
 export async function refreshInterfaces(): Promise<void> {
   const { interfaces: list } = await BoostlineNet.interfaces()
   const next: Record<string, NetworkInterfaceInfo[]> = {}
-  for (const i of list) next[i.name] = [...(next[i.name] ?? []), { address: i.address, netmask: i.netmask, family: 'IPv4', internal: i.internal }]
+  // WiFi and wired (en*) only: not cellular (pdp_ip*), VPN (utun*) or peer-to-peer links.
+  for (const i of list.filter((x) => /^(en|lo)\d/.test(x.name))) next[i.name] = [...(next[i.name] ?? []), { address: i.address, netmask: i.netmask, family: 'IPv4', internal: i.internal }]
   interfaces = next
 }
 
