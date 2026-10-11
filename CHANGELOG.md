@@ -9,7 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
-- **iPhone and iPad app.** The same screens and analysis as the desktop app, with a phone layout (tab bar at the bottom, touch controls for graphs) and a two-column iPad layout. It connects through the MHD and bootmod3 WiFi adapters, saves logs to the Files app and imports the BMW DME data on the device. Tested on a car through the MHD WiFi adapter. Submitted to the App Store; see [docs/ios.md](docs/ios.md).
+- **iPhone and iPad app.** The same screens and analysis as the desktop app, with a phone layout (tab bar at the bottom) and touch controls for graphs. On an iPad it keeps the side rail, and in landscape it has the same layout as the desktop. It connects through the MHD and bootmod3 WiFi adapters, saves logs to the Files app and imports the BMW DME data on the device. Tested on a car through the MHD WiFi adapter. Submitted to the App Store; see [docs/ios.md](docs/ios.md).
 - **OBD-II fallback:** when the car refuses a BMW DME measurement that replaced a standard OBD-II channel (engine speed, boost, temperatures…), Boostline switches that channel back to the OBD-II reading instead of leaving it blank. Channels built from it (such as boost from manifold and barometric pressure) follow. The connection log says which channels switched.
 - A one-time **closed courses only** notice before the first dyno or drag run.
 
