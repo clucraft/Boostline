@@ -5,6 +5,7 @@ import type { ProbeResult } from '@shared/ipc'
 import { api, isDesktop, useApp } from '../store'
 import { Toggle } from '../components/ui'
 import { BmwDataCard } from '../components/BmwDataCard'
+import { LINKS } from '../lib/links'
 
 const UNIT_OPTIONS: { key: keyof UnitPrefs; label: string; options: [string, string][] }[] = [
   { key: 'pressure', label: 'Pressure', options: [['bar', 'bar'], ['psi', 'psi'], ['kPa', 'kPa']] },
@@ -259,9 +260,15 @@ export function SettingsPage() {
               <br />
               Not affiliated with BMW, MHD or bootmod3. Use at your own risk; only read-only diagnostic services are sent to the car.
             </div>
-            <div>
-              <a href="https://github.com/clucraft/Boostline" target="_blank" rel="noreferrer">
-                github.com/clucraft/Boostline
+            <div className="row" style={{ gap: 14, flexWrap: 'wrap' }}>
+              <a href={LINKS.site} target="_blank" rel="noreferrer">
+                Website
+              </a>
+              <a href={LINKS.support} target="_blank" rel="noreferrer">
+                Support
+              </a>
+              <a href={LINKS.privacy} target="_blank" rel="noreferrer">
+                Privacy policy
               </a>
             </div>
           </div>

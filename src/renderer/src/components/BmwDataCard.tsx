@@ -3,6 +3,7 @@ import { DatabaseIcon, DownloadIcon, FolderIcon, SpinnerIcon, TrashIcon } from '
 import type { BmwDataProgress, BmwDataSummary } from '@shared/ipc'
 import { api, useApp } from '../store'
 import { fmtBytes } from '../lib/format'
+import { LINKS } from '../lib/links'
 
 const PHASE: Record<BmwDataProgress['phase'], string> = {
   release: 'Looking up the latest release…',
@@ -62,8 +63,8 @@ export function BmwDataCard() {
         <a href="https://github.com/gediz/bmw-unified-db" target="_blank" rel="noreferrer">
           bmw-unified-db
         </a>{' '}
-        project. The data is BMW-copyrighted, so Boostline downloads it to your PC instead of shipping it.{' '}
-        <a href="https://github.com/clucraft/Boostline#setting-up-bmw-dme-data" target="_blank" rel="noreferrer">
+        project. The data is BMW-copyrighted, so Boostline downloads it to your device instead of shipping it.{' '}
+        <a href={LINKS.bmwDataGuide} target="_blank" rel="noreferrer">
           Step-by-step guide
         </a>
       </div>
