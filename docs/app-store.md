@@ -35,7 +35,7 @@ but the request itself.
 | Support URL | https://clucraft.github.io/boostline-site/support.html |
 | Marketing URL | https://clucraft.github.io/boostline-site/ |
 | Keywords | `obd,obd2,datalog,logger,dyno,boost,tuning,ecu,drag,0-60,lambda,turbo,b58,s58,s55,n55,n54,gauges` |
-| Copyright | 2026 + the account holder's name |
+| Copyright | 2026 Boostline |
 
 Promotional text:
 
