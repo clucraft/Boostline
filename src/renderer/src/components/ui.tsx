@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { CaretDownIcon, CloseIcon } from './icons'
+import { CaretDownIcon, CloseIcon, WarningIcon } from './icons'
 import { useApp } from '../store'
 
 export interface MenuItem {
@@ -159,6 +159,57 @@ export function Modal({
     </div>,
     document.body
   )
+}
+
+/**
+ * Runs `action` once the "closed courses only" notice has been acknowledged; the notice is
+ * shown the first time only (the answer is kept in settings). Render `notice` on the page.
+ */
+export function useClosedCourseNotice(): { confirm: (action: () => void) => void; notice: ReactNode } {
+  const accepted = useApp((s) => !!s.settings?.closedCourseNotice)
+  const updateSettings = useApp((s) => s.updateSettings)
+  const [pending, setPending] = useState<(() => void) | null>(null)
+  const confirm = (action: () => void): void => {
+    if (accepted) action()
+    else setPending(() => action)
+  }
+  const accept = (): void => {
+    const action = pending
+    setPending(null)
+    void updateSettings({ closedCourseNotice: true })
+    action?.()
+  }
+  const notice = pending && (
+    <Modal
+      title="Closed courses only"
+      onClose={() => setPending(null)}
+      footer={
+        <>
+          <button className="btn" onClick={() => setPending(null)}>
+            Cancel
+          </button>
+          <button className="btn primary" onClick={accept}>
+            I understand
+          </button>
+        </>
+      }
+    >
+      <div className="closed-course">
+        <WarningIcon size={22} weight="fill" />
+        <div>
+          <p>
+            Dyno and drag runs mean full-throttle acceleration. Only do them where that is legal and safe: on a closed course, a
+            drag strip or a dyno, never on public roads.
+          </p>
+          <p>
+            Set the run up before you drive and keep your eyes on the road, not on the screen: Boostline records the run on its own.
+            You are responsible for how and where you drive.
+          </p>
+        </div>
+      </div>
+    </Modal>
+  )
+  return { confirm, notice }
 }
 
 /** Prompt for a short text value (names of presets, graphs, runs). */

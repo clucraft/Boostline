@@ -5,9 +5,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-10
+
 ### Added
 
-- **iOS app (in TestFlight, not on the App Store yet).** The same screens and analysis as the desktop app, with a phone layout (tab bar at the bottom, touch controls for graphs). It connects through the MHD and bootmod3 WiFi adapters, saves logs to the Files app and imports the BMW DME data on the phone. Tested on a car through the MHD WiFi adapter; see [docs/ios.md](docs/ios.md).
+- **iPhone and iPad app.** The same screens and analysis as the desktop app, with a phone layout (tab bar at the bottom) and touch controls for graphs. On an iPad it keeps the side rail, and in landscape it has the same layout as the desktop. It connects through the MHD and bootmod3 WiFi adapters, saves logs to the Files app and imports the BMW DME data on the device. Tested on a car through the MHD WiFi adapter. Submitted to the App Store; see [docs/ios.md](docs/ios.md).
+- **OBD-II fallback:** when the car refuses a BMW DME measurement that replaced a standard OBD-II channel (engine speed, boost, temperatures…), Boostline switches that channel back to the OBD-II reading instead of leaving it blank. Channels built from it (such as boost from manifold and barometric pressure) follow. The connection log says which channels switched.
+- A one-time **closed courses only** notice before the first dyno or drag run.
 
 ### Changed
 
@@ -114,7 +118,8 @@ First public release.
 - Safety: the UDS client has a hard allowlist of read-only services (session control, read data/memory, dynamic DID definition, tester present, read DTCs). Nothing that writes, codes or flashes can be sent.
 - Settings for units (bar/psi/kPa, °C/°F, km/h/mph, Nm/lb-ft, hp/PS/kW, kg/h/g/s/lb/min, λ/AFR), Log Viewer behavior, data folder, and auto-recording of WOT pulls.
 
-[Unreleased]: https://github.com/clucraft/Boostline/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/clucraft/Boostline/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/clucraft/Boostline/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/clucraft/Boostline/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/clucraft/Boostline/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/clucraft/Boostline/releases/tag/v0.4.0

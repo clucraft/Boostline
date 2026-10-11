@@ -11,7 +11,7 @@ import { liveBuffer } from '../lib/liveBuffer'
 import { RUN_COLORS } from '../lib/colors'
 import { stamp, uid } from '../lib/format'
 import { Chart, type ChartHandle, type ChartScale, type ChartSeries } from '../components/Chart'
-import { Collapsible, NumberField } from '../components/ui'
+import { Collapsible, NumberField, useClosedCourseNotice } from '../components/ui'
 import { ArmIcon, CloseIcon, CsvIcon, ExpandIcon, ImageIcon, SaveIcon, ShrinkIcon, TrashIcon, WarningIcon } from '../components/icons'
 import { RunSteps } from './RunSteps'
 
@@ -130,11 +130,16 @@ export function DynoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [arm])
 
+  const closedCourse = useClosedCourseNotice()
   const armRun = (): void => {
     if (arm === 'armed' || arm === 'recording') {
       setArm('idle')
       return
     }
+    closedCourse.confirm(startArmed)
+  }
+
+  const startArmed = (): void => {
     // Take environment from the car when it reports it.
     const baro = liveBuffer.latest(CH.baro)
     const amb = liveBuffer.latest(CH.ambientTemp)
@@ -224,6 +229,7 @@ export function DynoPage() {
 
   return (
     <div className="page">
+      {closedCourse.notice}
       <div className="page-toolbar">
         <h1>Dyno</h1>
         <RunSteps step={step} labels={['Set up', 'Capture a pull', 'Results']} />

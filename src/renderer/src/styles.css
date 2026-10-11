@@ -899,6 +899,23 @@ input[type='range'] {
   padding: 16px;
   overflow-y: auto;
 }
+.closed-course {
+  display: flex;
+  gap: 14px;
+  line-height: 1.55;
+}
+.closed-course svg {
+  flex: none;
+  color: var(--amber);
+  margin-top: 1px;
+}
+.closed-course p {
+  margin: 0 0 10px;
+}
+.closed-course p:last-child {
+  margin-bottom: 0;
+  color: var(--muted);
+}
 .modal-foot {
   display: flex;
   justify-content: flex-end;

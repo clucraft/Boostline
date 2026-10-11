@@ -97,6 +97,8 @@ export interface FakeGatewayOptions {
   maxDynamicDidEntries?: number
   /** Source DIDs that 2C 01 refuses with NRC 0x31. */
   nonComposableDids?: number[]
+  /** DME DIDs this ECU doesn't have: reads answer NRC 0x31 (or skip them) and 2C 01 refuses them. */
+  missingDids?: number[]
   /** F150 record; null: F150 is not supported (default FAKE_SGBD_INDEX). */
   sgbdIndex?: Buffer | null
   /** Start the UDP identification responder. */
@@ -360,7 +362,7 @@ export class FakeGateway {
 
   private readDid(client: Client, target: number, did: number): Buffer | undefined {
     if (did === 0xf190) return Buffer.from(this.vin, 'latin1')
-    if (target !== DME) return undefined
+    if (target !== DME || this.opts.missingDids?.includes(did)) return undefined
     if (did === 0xf101) return this.opts.svk ?? FAKE_SVK
     if (did === 0xf150) return this.opts.sgbdIndex === null ? undefined : (this.opts.sgbdIndex ?? FAKE_SGBD_INDEX)
     if (did >= 0xf400 && did <= 0xf4ff) {

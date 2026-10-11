@@ -362,12 +362,15 @@ interface Session {
   info: VehicleInfo
   channels: ChannelDef[]
   sources: Map<string, ChannelSource>
+  /** The OBD source of each channel a later layer replaced; used when the ECU refuses the replacement. */
+  fallbacks: Map<string, ChannelSource>
 }
 
 /**
  * Layers, later ones replacing channels with the same id (the channel keeps its first
  * position): OBD channels, OBD derived channels, BMW DME measurements and their derived
  * channels, user definition sets. Derived channels with unavailable inputs are dropped.
+ * A replaced OBD source is kept as the channel's fallback.
  */
 function buildChannelRegistry(
   obd: ObdPlan,
@@ -375,7 +378,7 @@ function buildChannelRegistry(
   dmeSet: DmeChannelSet | undefined,
   sets: readonly DefinitionSet[],
   log: (message: string) => void
-): { channels: ChannelDef[]; sources: Map<string, ChannelSource> } {
+): { channels: ChannelDef[]; sources: Map<string, ChannelSource>; fallbacks: Map<string, ChannelSource> } {
   const defs = new Map<string, ChannelDef>()
   const sources = new Map<string, ChannelSource>()
   const add = (channel: ChannelDef, source: ChannelSource): void => {
@@ -384,6 +387,7 @@ function buildChannelRegistry(
   }
   for (const r of obd.reads) add(r.channel, { type: 'did', target: dme, did: r.did, length: r.length, composable: false, decode: r.decode })
   for (const d of obd.derived) add(d.channel, { type: 'derived', inputs: d.inputs, compute: d.compute })
+  const obdSources = new Map(sources)
   if (dmeSet) {
     for (const r of dmeSet.reads) {
       add(r.channel, { type: 'did', target: dmeSet.ecuAddress, did: r.did, length: r.length, composable: r.composable, decode: r.decode })
@@ -414,7 +418,9 @@ function buildChannelRegistry(
       changed = true
     }
   }
-  return { channels: [...defs.values()], sources }
+  const fallbacks = new Map<string, ChannelSource>()
+  for (const [id, source] of obdSources) if (sources.has(id) && sources.get(id) !== source) fallbacks.set(id, source)
+  return { channels: [...defs.values()], sources, fallbacks }
 }
 
 // ------------------------------------------------------------------ adapter
@@ -596,7 +602,7 @@ export class EnetAdapter implements VehicleAdapter {
         )
       : []
     for (const set of sets) log(`Using definition set "${set.name}" (${set.channels.length} channels)`)
-    const { channels, sources } = buildChannelRegistry(buildObdPlan(supported), dme, dmeSet, sets, log)
+    const { channels, sources, fallbacks } = buildChannelRegistry(buildObdPlan(supported), dme, dmeSet, sets, log)
 
     const info: VehicleInfo = {
       vin,
@@ -612,7 +618,7 @@ export class EnetAdapter implements VehicleAdapter {
       label: `${KIND_LABEL[this.kind]} · ${port === HSFZ_DIAG_PORT ? host : `${host}:${port}`}`
     }
     log(`Connected via ${info.label}: VIN ${vin ?? 'unknown'}, software ${ident.softwareVersion ?? 'unknown'}, ${channels.length} channels`)
-    return { conn, uds, info, channels, sources }
+    return { conn, uds, info, channels, sources, fallbacks }
   }
 
   /** Asks the dmeData resolver for this DME's measurement set and logs the outcome. */
@@ -734,6 +740,12 @@ class PollStream {
   private readonly didReads = new Map<number, DidRead[]>()
   private readonly memoryReads: MemoryRead[] = []
   private readonly derived: DerivedStep[] = []
+  /** Channels being read or computed (requested ones and the inputs of derived ones). */
+  private readonly planned = new Set<string>()
+  /** Channels without a value for good: their read was refused and there is nothing to fall back to. */
+  private readonly dead = new Set<string>()
+  /** Channels switched to their OBD fallback (never twice). */
+  private readonly fellBack = new Set<string>()
   /** Dynamic DIDs defined by this stream (by memory or by identifier), cleared on stop. */
   private readonly dynamicDids: Array<{ target: number; did: number }> = []
   /** Next free dynamic DID number, shared by both kinds of definitions so they never collide. */
@@ -766,7 +778,7 @@ class PollStream {
 
   private async prepare(): Promise<void> {
     const { sources } = this.ctx.session
-    const needed = new Set<string>()
+    const needed = this.planned
     const unknown: string[] = []
     const visit = (id: string): void => {
       if (needed.has(id)) return
@@ -820,7 +832,7 @@ class PollStream {
     for (const [target, list] of composable) await this.prepareComposed(target, list)
   }
 
-  private addDidField(target: number, did: number, length: number | undefined, field: Field): void {
+  private addDidField(target: number, did: number, length: number | undefined, field: Field): DidRead {
     let reads = this.didReads.get(target)
     if (!reads) {
       reads = []
@@ -833,6 +845,7 @@ class PollStream {
     }
     read.length ??= length
     read.fields.push(field)
+    return read
   }
 
   /** Polls a defined dynamic DID like any DID; each part's fields decode their slice of the record. */
@@ -1096,9 +1109,8 @@ class PollStream {
       if (batch.length === 1 && hasNrc(err, PERMANENT_NRCS)) {
         const read = batch[0]
         read.disabled = true
-        this.ctx.report(
-          new Error(`DID ${hexWord(read.did)} on ECU ${hexByte(target)} unavailable (${describe(err)}); not polling ${read.fields.map((f) => f.channelId).join(', ')}`)
-        )
+        const outcome = this.loseChannels(read.fields.map((f) => f.channelId))
+        this.ctx.report(new Error(`DID ${hexWord(read.did)} on ECU ${hexByte(target)} unavailable (${describe(err)}); ${outcome}`))
         return
       }
       this.ctx.report(toError(err))
@@ -1114,13 +1126,108 @@ class PollStream {
       if (isClosed(err)) throw err
       if (hasNrc(err, PERMANENT_NRCS)) {
         read.disabled = true
-        this.ctx.report(
-          new Error(`RAM ${hexAddress(read.address)} on ECU ${hexByte(read.target)} unavailable (${describe(err)}); not polling ${read.field.channelId}`)
-        )
+        const outcome = this.loseChannels([read.field.channelId])
+        this.ctx.report(new Error(`RAM ${hexAddress(read.address)} on ECU ${hexByte(read.target)} unavailable (${describe(err)}); ${outcome}`))
         return
       }
       this.ctx.report(toError(err))
     }
+  }
+
+  // ---------------------------------------------------------------- fallbacks
+
+  /**
+   * `ids` lost their read for good. Each one that replaced an OBD channel switches to the
+   * OBD reading; the rest stay blank. Derived channels computed from a blank input switch to
+   * their OBD version too, or go blank. Returns what happened, for the report.
+   */
+  private loseChannels(ids: readonly string[]): string {
+    const switched: string[] = []
+    const blank: string[] = []
+    for (const id of ids) {
+      if (this.useFallback(id)) switched.push(id)
+      else {
+        this.dead.add(id)
+        blank.push(id)
+      }
+    }
+    for (let changed = true; changed; ) {
+      changed = false
+      for (const step of [...this.derived]) {
+        if (this.dead.has(step.channelId) || !step.inputs.some((input) => this.dead.has(input))) continue
+        if (this.useFallback(step.channelId)) switched.push(step.channelId)
+        else this.dead.add(step.channelId)
+        changed = true
+      }
+    }
+    const outcome: string[] = []
+    if (switched.length > 0) {
+      const what = switched.join(', ')
+      this.ctx.log(`Using the standard OBD-II reading for ${what} instead`)
+      outcome.push(`using the standard OBD-II reading for ${what}`)
+    }
+    if (blank.length > 0) outcome.push(`not polling ${blank.join(', ')}`)
+    return outcome.join('; ')
+  }
+
+  /** Switches `id` to its OBD source; false when it has none (or already uses it, or that failed too). */
+  private useFallback(id: string): boolean {
+    const source = this.ctx.session.fallbacks.get(id)
+    if (!source || this.fellBack.has(id)) return false
+    this.fellBack.add(id)
+    this.dead.delete(id)
+    const old = this.derived.findIndex((s) => s.channelId === id)
+    if (old >= 0) this.derived.splice(old, 1)
+    if (source.type === 'did') {
+      const read = this.addDidField(source.target, source.did, source.length, { channelId: id, decode: source.decode })
+      if (read.disabled) {
+        this.dead.add(id)
+        return false
+      }
+    } else if (source.type === 'derived') {
+      source.inputs.forEach((input) => this.planChannel(input))
+      this.derived.push({ channelId: id, inputs: source.inputs, compute: source.compute })
+      this.sortDerived()
+    } else {
+      this.memoryReads.push({ target: source.target, address: source.address, size: source.size, field: { channelId: id, decode: source.decode }, disabled: false })
+    }
+    return true
+  }
+
+  /** Adds a channel that was not needed so far (an input of a fallback) to the plan, read plainly. */
+  private planChannel(id: string): void {
+    if (this.planned.has(id)) return
+    this.planned.add(id)
+    const source = this.ctx.session.sources.get(id)
+    if (!source) {
+      this.dead.add(id)
+    } else if (source.type === 'did') {
+      if (this.addDidField(source.target, source.did, source.length, { channelId: id, decode: source.decode }).disabled) this.dead.add(id)
+    } else if (source.type === 'memory') {
+      this.memoryReads.push({ target: source.target, address: source.address, size: source.size, field: { channelId: id, decode: source.decode }, disabled: false })
+    } else {
+      source.inputs.forEach((input) => this.planChannel(input))
+      this.derived.push({ channelId: id, inputs: source.inputs, compute: source.compute })
+      this.sortDerived()
+    }
+  }
+
+  /** Orders derived steps so that each one runs after the derived channels it reads. */
+  private sortDerived(): void {
+    const byId = new Map(this.derived.map((s) => [s.channelId, s]))
+    const sorted: DerivedStep[] = []
+    const seen = new Set<string>()
+    const visit = (step: DerivedStep): void => {
+      if (seen.has(step.channelId)) return
+      seen.add(step.channelId)
+      for (const input of step.inputs) {
+        const dep = byId.get(input)
+        if (dep) visit(dep)
+      }
+      sorted.push(step)
+    }
+    this.derived.forEach(visit)
+    this.derived.splice(0, this.derived.length, ...sorted)
   }
 
   private async keepSessionsAlive(): Promise<void> {
