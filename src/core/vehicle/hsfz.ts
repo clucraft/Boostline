@@ -32,8 +32,8 @@
  *   - UDS "response pending" (7F <sid> 78) is handled here, extending the deadline (5 s
  *     by default) instead of resolving the request.
  */
-import { EventEmitter } from 'node:events'
-import net from 'node:net'
+import { EventEmitter } from 'events'
+import { runtime, type TcpSocket } from '../runtime'
 
 export const HSFZ_DIAG_PORT = 6801
 export const HSFZ_IDENT_PORT = 6811
@@ -263,7 +263,7 @@ export class HsfzConnection extends EventEmitter<HsfzConnectionEvents> {
   readonly port: number
   readonly testerAddress: number
 
-  private readonly socket: net.Socket
+  private readonly socket: TcpSocket
   private readonly reader = new HsfzFrameReader()
   private readonly queue: PendingRequest[] = []
   private readonly onTraffic: HsfzConnectOptions['onTraffic']
@@ -276,7 +276,7 @@ export class HsfzConnection extends EventEmitter<HsfzConnectionEvents> {
   private lastAliveReplyAt = -Infinity
   private readonly noteCounts = new Map<string, number>()
 
-  private constructor(socket: net.Socket, host: string, port: number, opts: HsfzConnectOptions) {
+  private constructor(socket: TcpSocket, host: string, port: number, opts: HsfzConnectOptions) {
     super()
     this.socket = socket
     this.host = host
@@ -306,7 +306,7 @@ export class HsfzConnection extends EventEmitter<HsfzConnectionEvents> {
         reject(abortError(signal))
         return
       }
-      const socket = net.createConnection({ host, port })
+      const socket = runtime().createTcpConnection(host, port)
       let settled = false
       const finish = (err?: Error): void => {
         if (settled) return

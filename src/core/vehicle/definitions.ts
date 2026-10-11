@@ -52,8 +52,7 @@
  * Integers may be JSON numbers or strings ("0x4205", "18"). Invalid files are reported via
  * the callback and skipped; they never abort loading.
  */
-import { promises as fs } from 'node:fs'
-import { join } from 'node:path'
+import { runtime } from '../runtime'
 import type { ChannelDef, ChannelGroup, Quantity } from '@shared/types'
 
 export interface ValueEncoding {
@@ -318,18 +317,18 @@ export async function loadDefinitionFiles(
 ): Promise<DefinitionSet[]> {
   let names: string[]
   try {
-    names = (await fs.readdir(dir)).filter((n) => n.toLowerCase().endsWith('.json')).sort()
+    names = (await runtime().readDir(dir)).filter((n) => n.toLowerCase().endsWith('.json')).sort()
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return []
+    if ((err as { code?: string }).code === 'ENOENT') return []
     onInvalid?.(dir, [`cannot read folder: ${(err as Error).message}`])
     return []
   }
   const sets: DefinitionSet[] = []
   for (const name of names) {
-    const file = join(dir, name)
+    const file = runtime().joinPath(dir, name)
     let json: unknown
     try {
-      json = JSON.parse(await fs.readFile(file, 'utf8'))
+      json = JSON.parse(await runtime().readTextFile(file))
     } catch (err) {
       onInvalid?.(file, [`not valid JSON: ${(err as Error).message}`])
       continue

@@ -89,14 +89,14 @@ export function ChannelPalette({ onClose }: { onClose: () => void }) {
           {!items.length && <div className="muted small" style={{ padding: 12 }}>No channels match “{query}”.</div>}
         </div>
         <div className="palette-foot">
-          <span>
+          <span className="palette-key">
             <span className="kbd">↑</span>
             <span className="kbd">↓</span> move
           </span>
-          <span>
+          <span className="palette-key">
             <span className="kbd">Enter</span> add or remove
           </span>
-          <span>
+          <span className="palette-key">
             <span className="kbd">Esc</span> close
           </span>
           <span className="spacer" />

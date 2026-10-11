@@ -3,10 +3,10 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { decodeMeasurement, normalizeSgbdUnit, parseSgfunktionenRow } from '../src/main/bmwdata/sgbdRow'
+import { decodeMeasurement, normalizeSgbdUnit, parseSgfunktionenRow } from '../src/core/bmwdata/sgbdRow'
 import { importBmwUnifiedDb } from '../src/main/bmwdata/importDb'
-import { buildDmeChannelSet, measurementName, resolveDme } from '../src/main/bmwdata/channels'
-import type { BmwDme, BmwMeasurement } from '../src/main/bmwdata/types'
+import { buildDmeChannelSet, measurementName, resolveDme } from '../src/core/bmwdata/channels'
+import type { BmwDme, BmwMeasurement } from '../src/core/bmwdata/types'
 
 // All DIDs, scalings and descriptions below are invented test data in the shape of
 // an SGBD SG_FUNKTIONEN table; no BMW data is included in the repository.
@@ -92,18 +92,18 @@ describe('importBmwUnifiedDb', () => {
   })
   afterAll(() => rmSync(dir, { recursive: true, force: true }))
 
-  it('extracts readable DME measurements, indexes, engines and chassis', () => {
-    const pack = importBmwUnifiedDb(path, 'test')
+  it('extracts readable DME measurements, indexes, engines and chassis', async () => {
+    const pack = await importBmwUnifiedDb(path, 'test')
     expect(pack.dmes).toHaveLength(1)
     const dme = pack.dmes[0]
     expect(dme).toMatchObject({ sgbd: 'testdme', name: 'Test DME', chassis: ['X99'], engines: ['X58'], diagAddress: 0x12, sgbdIndexes: [0xf9999] })
     expect(dme.measurements.map((m) => m.did)).toEqual([0x7001, 0x7003])
   })
 
-  it('rejects files that are not bmw-unified-db databases', () => {
+  it('rejects files that are not bmw-unified-db databases', async () => {
     const other = join(dir, 'other.sqlite')
     new DatabaseSync(other).close()
-    expect(() => importBmwUnifiedDb(other)).toThrow(/Not a bmw-unified-db/)
+    await expect(importBmwUnifiedDb(other)).rejects.toThrow(/Not a bmw-unified-db/)
   })
 })
 

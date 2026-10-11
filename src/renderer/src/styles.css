@@ -2068,3 +2068,15 @@ input[type='range'] {
 .tiles-wrap {
   flex: none;
 }
+
+.split-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 12px;
+  flex: none;
+}
+.edit-channels-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}

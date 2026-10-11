@@ -1,5 +1,4 @@
-import { createWriteStream, type WriteStream } from 'node:fs'
-import { join } from 'node:path'
+import { runtime, type FileWriter } from './runtime'
 import type { ChannelDef } from '@shared/types'
 import { csvHeaderLine, csvMetaLines, csvRowLine } from '@shared/analysis/csv'
 
@@ -17,15 +16,15 @@ export class Recorder {
   readonly file: string
   readonly startedAt = Date.now()
   samples = 0
-  private out: WriteStream
+  private out: FileWriter
   private t0: number | null = null
   private decimals: number[]
   private buffer: string[] = []
 
   constructor(dir: string, channels: ChannelDef[], meta: Record<string, string>) {
-    this.file = join(dir, logFileName())
+    this.file = runtime().joinPath(dir, logFileName())
     this.decimals = channels.map((c) => Math.min(c.decimals + 1, 4))
-    this.out = createWriteStream(this.file, { encoding: 'utf8' })
+    this.out = runtime().createFileWriter(this.file)
     this.out.write(
       csvMetaLines({ app: 'Boostline', started: new Date(this.startedAt).toISOString(), ...meta, ids: channels.map((c) => c.id).join(',') }) +
         csvHeaderLine(channels)
@@ -44,10 +43,9 @@ export class Recorder {
     this.buffer = []
   }
 
-  close(): Promise<string> {
+  async close(): Promise<string> {
     this.flush()
-    return new Promise((resolve, reject) => {
-      this.out.end((err?: Error | null) => (err ? reject(err) : resolve(this.file)))
-    })
+    await this.out.end()
+    return this.file
   }
 }

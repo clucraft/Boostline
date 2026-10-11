@@ -1,0 +1,84 @@
+name: iOS
+
+# Builds the iOS app (unsigned, for the Simulator), then runs it in an iPhone Simulator
+# against the fake BMW gateway from the tests: the app connects over TCP through the native
+# plugin, streams, saves a log, and writes the outcome to Documents/smoke.json
+# (src/mobile/smoke.ts). Runs on pull requests that touch the app, or by hand (Actions → iOS →
+# Run workflow), so it doesn't use macOS minutes on every push to main.
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'ios/**'
+      - 'native/**'
+      - 'test/fakeGateway.ts'
+      - 'test/gatewayServer.ts'
+      - 'capacitor.config.ts'
+      - 'vite.mobile.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run mobile:build
+      - run: npx cap sync ios
+      - name: Xcode version
+        run: xcodebuild -version
+      - name: Build for the iOS Simulator (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build/xcodebuild.log | grep -E 'error:|warning: .*Boostline|BUILD (SUCCEEDED|FAILED)' || true
+          grep -q 'BUILD SUCCEEDED' build/xcodebuild.log
+
+      - name: Start the fake BMW gateway
+        run: |
+          npx esbuild test/gatewayServer.ts --bundle --platform=node --outfile=build/gateway.cjs --log-level=warning
+          node build/gateway.cjs build/gateway.port > build/gateway.log 2>&1 &
+          for i in $(seq 1 50); do [ -s build/gateway.port ] && break; sleep 0.2; done
+          echo "Gateway on port $(cat build/gateway.port)"
+
+      - name: Run the app in an iPhone Simulator
+        run: |
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "import json, sys; d = json.load(sys.stdin)['devices']; print(next(x['udid'] for k, v in d.items() if 'iOS' in k for x in v if x['name'].startswith('iPhone')))")
+          echo "Simulator $DEVICE"
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl install "$DEVICE" build/ios/Build/Products/Debug-iphonesimulator/App.app
+          SIMCTL_CHILD_BOOSTLINE_AUTOCONNECT="mhd-wifi@127.0.0.1:$(cat build/gateway.port)" SIMCTL_CHILD_BOOSTLINE_CAPTURE_SECONDS=8 SIMCTL_CHILD_BOOSTLINE_IMPORT_BMW=1 \
+            xcrun simctl launch --console-pty "$DEVICE" app.boostline.logger > build/app-console.log 2>&1 &
+          DATA=$(xcrun simctl get_app_container "$DEVICE" app.boostline.logger data)
+          for i in $(seq 1 420); do [ -f "$DATA/Documents/smoke.json" ] && break; sleep 1; done
+          sleep 3
+          xcrun simctl io "$DEVICE" screenshot build/ios-simulator.png
+          cp "$DATA/Documents/smoke.json" build/ || true
+          ls -la "$DATA/Documents" "$DATA/Documents/Logs" || true
+          echo "--- smoke.json"; cat build/smoke.json || true
+          echo "--- BMW data import"; grep '\[bmw\]' build/app-console.log | tail -n 8 || true
+          echo "--- app console (first 120 lines)"; head -n 120 build/app-console.log || true
+          echo "--- gateway"; tail -n 5 build/gateway.log || true
+          head -c 3000000 build/app-console.log > build/app-console-head.log || true
+          grep -q '"ok": true' build/smoke.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-build
+          path: |
+            build/xcodebuild.log
+            build/app-console-head.log
+            build/smoke.json
+            build/ios-simulator.png
+            build/gateway.log
+          if-no-files-found: ignore

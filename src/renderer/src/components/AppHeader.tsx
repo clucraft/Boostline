@@ -127,17 +127,17 @@ export function AppHeader() {
           <button className="pill rec" onClick={() => void toggleCapture()} title="Stop capture and save the log">
             <span className="dot rec" />
             <b className="mono">{fmtDuration(Math.max(0, Date.now() - recording.startedAt))}</b>
-            {recording.samples.toLocaleString()} samples
+            <span className="rec-samples">{recording.samples.toLocaleString()} samples</span>
             <StopIcon size={13} weight="fill" />
           </button>
         ) : (
           <button className="btn" onClick={() => void toggleCapture()} title="Record the streamed channels to a CSV log">
-            <span className="rec-dot" /> Start capture
+            <span className="rec-dot" /> <span className="btn-label">Start capture</span>
           </button>
         ))}
 
       {online && (status.vin || ecu?.softwareVersion) && (
-        <button className="pill" onClick={(e) => open(e, 'vehicle', 300)} title="Vehicle details">
+        <button className="pill vehicle-pill" onClick={(e) => open(e, 'vehicle', 300)} title="Vehicle details">
           <CarIcon size={15} />
           <span className="mono">{status.vin ?? ecu?.softwareVersion}</span>
         </button>
@@ -189,8 +189,8 @@ export function AppHeader() {
         />
       )}
 
-      {/* macOS uses its native traffic-light buttons instead. */}
-      {api.platform !== 'darwin' ? (
+      {/* macOS uses its native traffic-light buttons; phones have no window buttons. */}
+      {api.platform === 'win32' || api.platform === 'linux' ? (
         <div className="window-controls">
           <button onClick={() => api.windowControl('minimize')} aria-label="Minimize">
             <MinusIcon size={16} />

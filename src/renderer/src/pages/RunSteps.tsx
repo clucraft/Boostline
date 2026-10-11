@@ -10,7 +10,7 @@ export function RunSteps({ step, labels }: { step: number; labels: string[] }) {
           {i > 0 && <span className="step-line" />}
           <span className={`step ${i === step ? 'active' : i < step ? 'done' : ''}`}>
             <span className="num">{i < step ? <CheckIcon size={11} weight="bold" /> : i + 1}</span>
-            {label}
+            <span className="step-label">{label}</span>
           </span>
         </Fragment>
       ))}

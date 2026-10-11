@@ -1,0 +1,15 @@
+{
+  "name": "boostline-native",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Boostline's native iOS code: TCP sockets for the vehicle connection and BMW data import (download, gunzip, SQLite).",
+  "license": "MIT",
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": "^8.0.0"
+  }
+}

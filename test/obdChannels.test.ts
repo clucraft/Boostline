@@ -7,7 +7,7 @@ import {
   buildObdPlan,
   obdDid,
   parseSupportedPids
-} from '../src/main/vehicle/obdChannels'
+} from '../src/core/vehicle/obdChannels'
 
 const hex = (s: string): Buffer => Buffer.from(s.replace(/\s+/g, ''), 'hex')
 const decode = (pid: number, data: string): number => {

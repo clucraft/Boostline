@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { LogData } from '@shared/types'
 import type { FileEntry } from '@shared/ipc'
-import { api, useApp } from '../store'
+import { api, isDesktop, useApp } from '../store'
 import { fmtBytes } from '../lib/format'
 import { FolderIcon, RefreshIcon, SearchIcon } from '../components/icons'
 import { LogViewer, type OpenRequest } from '../logviewer/LogViewer'
@@ -70,9 +70,11 @@ export function AnalyzePage({ active }: { active: boolean }) {
                 <button className="icon-btn" onClick={refresh} title="Refresh">
                   <RefreshIcon size={15} />
                 </button>
-                <button className="icon-btn" onClick={() => api.openDataDir()} title="Show the data folder">
-                  <FolderIcon size={15} />
-                </button>
+                {isDesktop && (
+                  <button className="icon-btn" onClick={() => api.openDataDir()} title="Show the data folder">
+                    <FolderIcon size={15} />
+                  </button>
+                )}
               </span>
             </h3>
             <div className="search-input">

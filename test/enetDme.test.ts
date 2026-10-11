@@ -6,9 +6,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { CH, type ChannelDef } from '@shared/types'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DmeChannelRead, DmeChannelSet, DmeDataResolver } from '../src/main/bmwdata/types'
-import type { SampleFrame } from '../src/main/vehicle/adapter'
-import { EnetAdapter, formatSgbdIndex, parseSgbdIndex, type EnetAdapterOptions } from '../src/main/vehicle/enet'
+import type { DmeChannelRead, DmeChannelSet, DmeDataResolver } from '../src/core/bmwdata/types'
+import type { SampleFrame } from '../src/core/vehicle/adapter'
+import { EnetAdapter, formatSgbdIndex, parseSgbdIndex, type EnetAdapterOptions } from '../src/core/vehicle/enet'
 import { FAKE_DME_DID, FAKE_DME_DID_LENGTH, FakeGateway, type FakeGatewayOptions } from './fakeGateway'
 
 const ALLOWED_SIDS = new Set([0x10, 0x19, 0x22, 0x23, 0x2c, 0x3e])

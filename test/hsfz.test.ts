@@ -2,12 +2,13 @@ import net from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   candidateHosts,
+  subnetHosts,
   directedBroadcast,
   discoverGateways,
   encodeDiscoveryRequest,
   listIpv4Interfaces,
   parseDiscoveryResponse
-} from '../src/main/vehicle/discovery'
+} from '../src/core/vehicle/discovery'
 import {
   HSFZ_MAX_PAYLOAD,
   HsfzConnection,
@@ -22,7 +23,7 @@ import {
   encodeDiagnosticFrame,
   encodeFrame,
   type TrafficDirection
-} from '../src/main/vehicle/hsfz'
+} from '../src/core/vehicle/hsfz'
 import { FAKE_MAC, FAKE_VIN, FakeGateway, type FakeGatewayOptions } from './fakeGateway'
 
 const hex = (s: string): Buffer => Buffer.from(s.replace(/\s+/g, ''), 'hex')
@@ -250,6 +251,13 @@ describe('discovery', () => {
     })
     expect(ifaces.find((i) => i.name === 'enet')?.linkLocal).toBe(true)
     expect(candidateHosts(ifaces)).toEqual(['192.168.4.1', '192.168.0.10'])
+    const scan = subnetHosts(ifaces)
+    expect(scan).toHaveLength(253)
+    expect(scan).toContain('192.168.4.1')
+    expect(scan).toContain('192.168.4.254')
+    expect(scan).not.toContain('192.168.4.23')
+    expect(scan).not.toContain('192.168.4.0')
+    expect(scan.some((h) => h.startsWith('169.254.') || h.startsWith('127.'))).toBe(false)
   })
 
   it('finds the fake gateway over UDP', async () => {

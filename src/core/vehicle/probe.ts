@@ -17,9 +17,7 @@
  *
  * The returned report is plain JSON; `summary` is one plain-English line.
  */
-import { promises as fs } from 'node:fs'
-import os from 'node:os'
-import { performance } from 'node:perf_hooks'
+import { runtime } from '../runtime'
 import type { AdapterKind } from '@shared/types'
 import {
   broadcastTargets,
@@ -125,7 +123,7 @@ class Capture {
   }
 
   async write(path: string, header: string): Promise<void> {
-    await fs.writeFile(path, `${header}\n\n${this.lines.join('\n')}\n`, 'utf8')
+    await runtime().writeTextFile(path, `${header}\n\n${this.lines.join('\n')}\n`)
   }
 }
 
@@ -294,7 +292,7 @@ export async function runProbe(opts: ProbeOptions): Promise<ProbeReport> {
     startedAt,
     durationMs: Math.round(performance.now() - started),
     kind: opts.kind,
-    platform: `${os.platform()} ${os.release()}`,
+    platform: runtime().describePlatform(),
     interfaces,
     discovery: { port: discoveryPort, targets: discoveryTargets, replies, error: discoveryError },
     candidates,

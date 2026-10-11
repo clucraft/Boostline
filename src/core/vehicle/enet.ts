@@ -49,12 +49,11 @@
  *
  * Only services on the UDS allowlist (uds.ts) can be sent.
  */
-import { performance } from 'node:perf_hooks'
 import type { AdapterKind, ChannelDef } from '@shared/types'
 import type { DmeChannelSet, DmeDataResolver } from '../bmwdata/types'
 import type { SampleFrame, StreamHandle, VehicleAdapter, VehicleInfo } from './adapter'
 import { decodeChannelSource, loadDefinitionFiles, selectDefinitionSets, type DefinitionSet } from './definitions'
-import { candidateHosts, discoverGateways, scanTcp } from './discovery'
+import { candidateHosts, discoverGateways, scanTcp, subnetHosts } from './discovery'
 import {
   ECU_ADDRESS,
   HSFZ_DIAG_PORT,
@@ -89,6 +88,13 @@ export interface EnetAdapterOptions {
    * undefined when unreadable). Its channels are added on top of the OBD channels.
    */
   dmeData?: DmeDataResolver
+  /**
+   * WiFi kinds: when discovery and the likely addresses find nothing, scan every address of
+   * the local network on the HSFZ port (the iOS app: iOS doesn't allow the UDP broadcast).
+   */
+  scanSubnet?: boolean
+  /** Timeout of the first identification requests (VIN), default 1500 ms. */
+  identTimeoutMs?: number
   log?: (message: string) => void
 }
 
@@ -100,6 +106,7 @@ const KIND_LABEL: Record<NetworkAdapterKind, string> = {
 
 const DISCOVERY_TIMEOUT_MS = 1500
 const CANDIDATE_PROBE_TIMEOUT_MS = 800
+const SUBNET_PROBE_TIMEOUT_MS = 500
 const CONNECT_TIMEOUT_MS = 3000
 const IDENT_TIMEOUT_MS = 1500
 const PID_PROBE_TIMEOUT_MS = 500
@@ -529,13 +536,24 @@ export class EnetAdapter implements VehicleAdapter {
     signal?.throwIfAborted()
     const open = results.find((r) => r.open)
     if (open) return open.host
+    if (this.opts.scanSubnet) {
+      const others = subnetHosts().filter((h) => !hosts.includes(h))
+      if (others.length) {
+        this.log(`Scanning ${others.length} addresses of the local network on TCP ${port}`)
+        const found = (await scanTcp(others.map((host) => ({ host, port })), { timeoutMs: SUBNET_PROBE_TIMEOUT_MS, concurrency: 32, signal })).find(
+          (r) => r.open
+        )
+        signal?.throwIfAborted()
+        if (found) return found.host
+      }
+    }
     throw new Error(
-      `No HSFZ gateway found (no discovery reply, nothing listening on TCP ${port} at ${hosts.join(', ')}). Connect this PC to the ${KIND_LABEL[this.kind]} adapter's WiFi network or enter its IP address.`
+      `No HSFZ gateway found (no discovery reply, nothing listening on TCP ${port} at ${hosts.join(', ')}${this.opts.scanSubnet ? ' or elsewhere on the network' : ''}). Join the ${KIND_LABEL[this.kind]} adapter's WiFi network on this device or enter its IP address.`
     )
   }
 
   private async identify(conn: HsfzConnection, host: string, port: number, signal?: AbortSignal): Promise<Session> {
-    const uds = new UdsClient(conn, { timeoutMs: IDENT_TIMEOUT_MS })
+    const uds = new UdsClient(conn, { timeoutMs: this.opts.identTimeoutMs ?? IDENT_TIMEOUT_MS })
     const dme = ECU_ADDRESS.DME
     const log = (m: string): void => this.log(m)
 

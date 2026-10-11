@@ -20,10 +20,7 @@
  * adapter's own IP is guessed (x.y.z.1 of each interface, plus common defaults) and
  * TCP-probed on 6801; see candidateHosts() and scanTcp().
  */
-import dgram from 'node:dgram'
-import net from 'node:net'
-import os from 'node:os'
-import { performance } from 'node:perf_hooks'
+import { runtime, type NetworkInterfaceInfo, type SocketError, type UdpSocket } from '../runtime'
 import { HSFZ_DIAG_PORT, HSFZ_HEADER_LENGTH, HSFZ_IDENT_PORT, HsfzControl, abortError, encodeFrame, type TrafficDirection } from './hsfz'
 
 /** Default IPs of common WiFi OBD/ENET bridges (ESP32 soft-AP default, typical bridge default). */
@@ -72,7 +69,7 @@ export function isLoopback(host: string): boolean {
 }
 
 export function listIpv4Interfaces(
-  interfaces: NodeJS.Dict<os.NetworkInterfaceInfo[]> = os.networkInterfaces()
+  interfaces: Record<string, NetworkInterfaceInfo[] | undefined> = runtime().networkInterfaces()
 ): Ipv4Interface[] {
   const out: Ipv4Interface[] = []
   for (const [name, infos] of Object.entries(interfaces)) {
@@ -115,6 +112,29 @@ export function candidateHosts(interfaces: Ipv4Interface[] = listIpv4Interfaces(
     if (first !== i.address) guesses.push(first)
   }
   return unique([...guesses, ...DEFAULT_ADAPTER_HOSTS])
+}
+
+/**
+ * Every host address of the local networks (WiFi / Ethernet; not link-local), for a TCP scan
+ * when neither discovery nor the likely addresses find the adapter. Larger networks are
+ * scanned only in the /24 around this device's own address.
+ */
+export function subnetHosts(interfaces: Ipv4Interface[] = listIpv4Interfaces()): string[] {
+  const out: string[] = []
+  for (const i of interfaces) {
+    if (i.internal || i.linkLocal) continue
+    const address = ipToInt(i.address)
+    let mask = ipToInt(i.netmask)
+    if (mask === 0xffffffff || mask === 0xfffffffe) continue
+    if (~mask >>> 0 > 0xff) mask = 0xffffff00
+    const network = (address & mask) >>> 0
+    const size = (~mask >>> 0) + 1
+    for (let k = 1; k < size - 1; k++) {
+      const host = (network + k) >>> 0
+      if (host !== address) out.push(intToIp(host))
+    }
+  }
+  return unique(out)
 }
 
 // ------------------------------------------------------------------ UDP identification
@@ -168,7 +188,15 @@ export function discoverGateways(opts: DiscoveryOptions = {}): Promise<Discovere
       reject(abortError(signal))
       return
     }
-    const socket = dgram.createSocket('udp4')
+    let socket: UdpSocket
+    try {
+      socket = runtime().createUdpSocket()
+    } catch (err) {
+      // Platforms without UDP broadcast skip discovery; callers fall back to probing hosts.
+      log(`Discovery unavailable: ${(err as Error).message}`)
+      resolve([])
+      return
+    }
     const found = new Map<string, DiscoveredGateway>()
     let timer: ReturnType<typeof setTimeout> | undefined
     let settled = false
@@ -223,7 +251,7 @@ export interface TcpProbeResult {
 export function probeTcpPort(host: string, port: number, timeoutMs = 800, signal?: AbortSignal): Promise<TcpProbeResult> {
   return new Promise((resolve) => {
     const start = performance.now()
-    const socket = net.createConnection({ host, port })
+    const socket = runtime().createTcpConnection(host, port)
     let settled = false
     const finish = (open: boolean, error?: string): void => {
       if (settled) return
@@ -236,7 +264,7 @@ export function probeTcpPort(host: string, port: number, timeoutMs = 800, signal
     const onAbort = (): void => finish(false, 'aborted')
     const timer = setTimeout(() => finish(false, 'timeout'), timeoutMs)
     socket.on('connect', () => finish(true))
-    socket.on('error', (err: NodeJS.ErrnoException) => finish(false, err.code ?? err.message))
+    socket.on('error', (err: SocketError) => finish(false, err.code ?? err.message))
     if (signal?.aborted) onAbort()
     else signal?.addEventListener('abort', onAbort, { once: true })
   })

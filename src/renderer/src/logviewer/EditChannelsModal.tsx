@@ -73,7 +73,7 @@ export function EditChannelsModal({
         </>
       }
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+      <div className="edit-channels-grid">
         <div className="stack" style={{ minHeight: 0 }}>
           <div className="search-input">
             <SearchIcon size={15} />

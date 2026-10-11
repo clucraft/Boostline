@@ -233,9 +233,79 @@ export const Chart = forwardRef<ChartHandle, Props>(function Chart(props, ref) {
       if (tip.current) tip.current.style.display = 'none'
       latest.current.onCursor?.(null)
     }
+    // Touch (phones and tablets; mouse input never reaches these): one finger moves the
+    // cursor, two fingers pinch-zoom and pan, double-tap resets, long-press opens the menu.
+    let pinch: { d: number; c: number; min: number; max: number } | null = null
+    let lastTap = 0
+    let pressTimer: ReturnType<typeof setTimeout> | undefined
+    const local = (t: Touch): { x: number; y: number } => {
+      const r = u.over.getBoundingClientRect()
+      return { x: t.clientX - r.left, y: t.clientY - r.top }
+    }
+    const fullX = (): [number, number] | null => {
+      const xs = latest.current.x
+      return xs.length < 2 ? null : [xs[0], xs[xs.length - 1]]
+    }
+    const onTouchStart = (e: TouchEvent): void => {
+      clearTimeout(pressTimer)
+      const full = fullX()
+      if (e.touches.length === 2 && latest.current.interactive && full) {
+        const a = local(e.touches[0])
+        const b = local(e.touches[1])
+        const { min = full[0], max = full[1] } = u.scales.x
+        pinch = { d: Math.max(20, Math.abs(a.x - b.x)), c: (a.x + b.x) / 2, min, max }
+        e.preventDefault()
+        return
+      }
+      if (e.touches.length !== 1) return
+      const t = e.touches[0]
+      const p = local(t)
+      u.setCursor({ left: p.x, top: p.y })
+      const now = Date.now()
+      if (now - lastTap < 300 && latest.current.interactive && full) {
+        lastTap = 0
+        u.setScale('x', { min: full[0], max: full[1] })
+        return
+      }
+      lastTap = now
+      pressTimer = setTimeout(() => {
+        latest.current.onContextMenu?.(new MouseEvent('contextmenu', { clientX: t.clientX, clientY: t.clientY }), u.posToVal(p.x, 'x'))
+      }, 550)
+    }
+    const onTouchMove = (e: TouchEvent): void => {
+      clearTimeout(pressTimer)
+      const full = fullX()
+      if (pinch && e.touches.length === 2 && full) {
+        e.preventDefault()
+        const a = local(e.touches[0])
+        const b = local(e.touches[1])
+        const width = u.over.getBoundingClientRect().width || 1
+        const span0 = pinch.max - pinch.min
+        const span = Math.min(full[1] - full[0], span0 * (pinch.d / Math.max(20, Math.abs(a.x - b.x))))
+        // Keep the value that was under the fingers' midpoint under it.
+        const anchor = pinch.min + (pinch.c / width) * span0
+        let min = anchor - (((a.x + b.x) / 2) / width) * span
+        let max = min + span
+        if (min < full[0]) [min, max] = [full[0], full[0] + span]
+        if (max > full[1]) [min, max] = [full[1] - span, full[1]]
+        u.setScale('x', { min, max })
+      } else if (e.touches.length === 1) {
+        const p = local(e.touches[0])
+        u.setCursor({ left: p.x, top: p.y })
+      }
+    }
+    const onTouchEnd = (e: TouchEvent): void => {
+      clearTimeout(pressTimer)
+      if (e.touches.length < 2) pinch = null
+    }
+
     u.over.addEventListener('wheel', onWheel, { passive: false })
     u.over.addEventListener('contextmenu', onContext)
     u.over.addEventListener('mouseleave', onLeave)
+    u.over.addEventListener('touchstart', onTouchStart, { passive: false })
+    u.over.addEventListener('touchmove', onTouchMove, { passive: false })
+    u.over.addEventListener('touchend', onTouchEnd)
+    u.over.addEventListener('touchcancel', onTouchEnd)
 
     // Resize on the next frame so a size change never feeds back into the same layout pass.
     let resizeFrame = 0
@@ -252,6 +322,7 @@ export const Chart = forwardRef<ChartHandle, Props>(function Chart(props, ref) {
 
     return () => {
       cancelAnimationFrame(resizeFrame)
+      clearTimeout(pressTimer)
       ro.disconnect()
       u.destroy()
       plot.current = null

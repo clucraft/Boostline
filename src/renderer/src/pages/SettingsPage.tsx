@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CableIcon, DiagnosticsIcon, FolderIcon, InfoIcon, SearchIcon, SimulatorIcon, SpinnerIcon, UnitsIcon, GraphIcon, WifiIcon } from '../components/icons'
 import type { AdapterKind, UnitPrefs } from '@shared/types'
 import type { ProbeResult } from '@shared/ipc'
-import { api, useApp } from '../store'
+import { api, isDesktop, useApp } from '../store'
 import { Toggle } from '../components/ui'
 import { BmwDataCard } from '../components/BmwDataCard'
 
@@ -126,11 +126,13 @@ export function SettingsPage() {
                   {probe.capturePath && (
                     <div className="row">
                       <span className="muted small mono" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {probe.capturePath}
+                        {isDesktop ? probe.capturePath : `Saved to Files › Boostline › ${probe.capturePath}`}
                       </span>
-                      <button className="btn sm" onClick={() => api.showInFolder(probe.capturePath!)}>
-                        <SearchIcon size={14} /> Show file
-                      </button>
+                      {isDesktop && (
+                        <button className="btn sm" onClick={() => api.showInFolder(probe.capturePath!)}>
+                          <SearchIcon size={14} /> Show file
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -218,14 +220,16 @@ export function SettingsPage() {
                 {settings.dataDir}
               </div>
             </div>
-            <div className="row">
-              <button className="btn sm" onClick={() => api.openDataDir()}>
-                Open
-              </button>
-              <button className="btn sm" onClick={chooseDir}>
-                Change…
-              </button>
-            </div>
+            {isDesktop && (
+              <div className="row">
+                <button className="btn sm" onClick={() => api.openDataDir()}>
+                  Open
+                </button>
+                <button className="btn sm" onClick={chooseDir}>
+                  Change…
+                </button>
+              </div>
+            )}
           </div>
           <div className="setting-row">
             <div>
