@@ -3,10 +3,10 @@ name: iOS
 # Builds the iOS app (unsigned, for the Simulator), then runs it in an iPhone Simulator
 # against the fake BMW gateway from the tests: the app connects over TCP through the native
 # plugin, streams, saves a log, and writes the outcome to Documents/smoke.json
-# (src/mobile/smoke.ts). Runs on pushes to the mobile branch that touch the app, or by hand.
+# (src/mobile/smoke.ts). Runs on pull requests that touch the app, or by hand (Actions → iOS →
+# Run workflow), so it doesn't use macOS minutes on every push to main.
 on:
-  push:
-    branches: [mobile]
+  pull_request:
     paths:
       - 'src/**'
       - 'ios/**'

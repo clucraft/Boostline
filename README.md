@@ -57,9 +57,9 @@ Boostline connects to your car over an ENET cable or an MHD / bootmod3 WiFi adap
 - **GPS speed calibration**: enter ECU vs. GPS speed points to correct speedometer error. Shows raw vs. calibrated speed curves.
 - Saved profiles store the calibration and environment (altitude, temperature, humidity).
 
-### iPhone and iPad (in development)
+### iPhone and iPad (in testing)
 
-An iOS version with the same screens is being built and isn't released yet. See [docs/ios.md](docs/ios.md).
+An iOS version with the same screens is in TestFlight testing (not on the App Store yet). It connects through the MHD and bootmod3 WiFi adapters. See [docs/ios.md](docs/ios.md).
 
 ### Simulator
 
