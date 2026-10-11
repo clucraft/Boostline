@@ -1,7 +1,7 @@
 {
   "name": "boostline",
   "productName": "Boostline",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "ECU data logger, log viewer, road dyno and drag timer for BMW B38/B48/B58/S58/N63/S63 engines",
   "main": "out/main/index.js",
   "private": true,

@@ -9,7 +9,7 @@ import { api, isOnline, useApp } from '../store'
 import { liveBuffer } from '../lib/liveBuffer'
 import { stamp, uid } from '../lib/format'
 import { Chart, type ChartHandle, type ChartRegion, type ChartScale, type ChartSeries } from '../components/Chart'
-import { Collapsible, NumberField, PromptModal } from '../components/ui'
+import { Collapsible, NumberField, PromptModal, useClosedCourseNotice } from '../components/ui'
 import {
   ArmIcon,
   CloseIcon,
@@ -139,13 +139,16 @@ export function DragPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state])
 
+  const closedCourse = useClosedCourseNotice()
   const arm = (): void => {
     if (armed) {
       setState('idle')
       return
     }
-    detector.current = new DragDetector(drag.mode, { calibration: drag.calibration, environment: drag.environment })
-    setState(detector.current.state as DState)
+    closedCourse.confirm(() => {
+      detector.current = new DragDetector(drag.mode, { calibration: drag.calibration, environment: drag.environment })
+      setState(detector.current.state as DState)
+    })
   }
 
   const fromLogFile = async (): Promise<void> => {
@@ -235,6 +238,7 @@ export function DragPage() {
 
   return (
     <div className="page">
+      {closedCourse.notice}
       <div className="page-toolbar">
         <h1>Drag</h1>
         <RunSteps step={step} labels={['Set up', 'Run', 'Results']} />

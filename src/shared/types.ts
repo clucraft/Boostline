@@ -382,4 +382,6 @@ export interface AppSettings {
   bmwDme: string
   /** Log Viewer heatmap configuration; defaults apply when absent. */
   heatmap?: HeatmapPrefs
+  /** The "closed courses only" notice was acknowledged (shown once, before the first dyno or drag run). */
+  closedCourseNotice?: boolean
 }
