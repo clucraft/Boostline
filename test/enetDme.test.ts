@@ -362,3 +362,54 @@ describe('DME streaming through dynamic DIDs', () => {
     expect(after).toEqual(expect.arrayContaining(['2c03f300', '2c03f301']))
   })
 })
+
+describe('OBD fallback', () => {
+  it('reads a channel from OBD-II again when the ECU refuses its DME measurement', async () => {
+    // This "car" has no rpm or MAP measurement. Engine speed goes back to OBD PID 0C, and
+    // boost (a DME channel derived from dme.map here) to its OBD version from PIDs 0B and 33.
+    // dme.map has no OBD version and stays blank, as does dme.boost, derived from it.
+    const set = testDmeSet()
+    set.derived.push({
+      channel: channel(CH.boostActual, { name: 'Boost (DME)', unit: 'bar', quantity: 'pressure' }),
+      inputs: ['dme.map', 'dme.baro'],
+      compute: ([map, baro]) => (map - baro) / 1000
+    })
+    const { gw, a, logs } = await connect({ missingDids: [FAKE_DME_DID.rpm, FAKE_DME_DID.map] }, {}, set)
+    const ids = [CH.rpm, 'dme.map', 'dme.iat', CH.boostActual, 'dme.boost']
+    const { frames, errors, column, stop } = await record(a, ids, 500)
+    await stop()
+
+    const last = frames.at(-1)
+    expect(last).toBeDefined()
+    const value = (id: string): number => last?.values[ids.indexOf(id)] ?? NaN
+    expect(value(CH.rpm)).toBeGreaterThanOrEqual(1500)
+    expect(value(CH.rpm)).toBeLessThanOrEqual(5500)
+    expect(value(CH.boostActual)).toBeGreaterThanOrEqual(-0.05)
+    expect(value(CH.boostActual)).toBeLessThanOrEqual(1.45)
+    expect(value('dme.iat')).toBe(35)
+    expect(value('dme.map')).toBeNaN()
+    expect(value('dme.boost')).toBeNaN()
+    expect(column(CH.rpm).filter(Number.isFinite).length).toBeGreaterThan(3)
+
+    // The OBD PIDs are read, and the switch is reported once per refused DID.
+    const read = new Set(gw.didRequests().flat())
+    for (const did of [0xf40c, 0xf40b, 0xf433]) expect(read.has(did)).toBe(true)
+    expect(errors.map((e) => e.message)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/DID 0x4A10 .*unavailable.*; using the standard OBD-II reading for engine\.rpm$/),
+        expect.stringMatching(/DID 0x4B22 .*unavailable.*; using the standard OBD-II reading for boost\.actual; not polling dme\.map$/)
+      ])
+    )
+    expect(errors).toHaveLength(2)
+    expect(logs.filter((l) => l.startsWith('Using the standard OBD-II reading'))).toHaveLength(2)
+    expectOnlyAllowedServices(gw)
+  })
+
+  it('keeps the OBD channels of a car without BMW DME data unchanged', async () => {
+    const { a } = await connect({}, {}, null)
+    const { errors, column, stop } = await record(a, [CH.rpm, CH.boostActual], 250)
+    await stop()
+    expect(errors).toEqual([])
+    expect(Number.isFinite(column(CH.rpm).at(-1))).toBe(true)
+  })
+})
