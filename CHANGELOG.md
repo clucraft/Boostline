@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- **iPhone Duo (iOS app):** built with Xcode 27.1, so the app fills the inner screen. Unfolded and held sideways, pages split into two halves at the fold: the Live tiles beside the live graphs, the Dyno and Drag results beside the setup and saved runs, and a slim log list beside the graphs on Analyze.
+
+### Changed
+
+- iOS app: phones in landscape keep a compact side rail instead of the bottom tab bar, so the content gets the full height. Larger iPhones on their side show the results and the setup side by side, and wide phone screens show three tile columns instead of two.
+
 ## [0.6.0] - 2026-10-10
 
 ### Added

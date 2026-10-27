@@ -83,7 +83,7 @@ app.whenReady().then(async () => {
 
   try {
     check('hover: none (touch emulation)', await js(`matchMedia('(hover: none)').matches`))
-    if (W <= 760) check('bottom tab bar', await js(`getComputedStyle(document.querySelector('.rail')).flexDirection === 'row'`))
+    if (W <= 760 && H > W) check('bottom tab bar', await js(`getComputedStyle(document.querySelector('.rail')).flexDirection === 'row'`))
     else check('side rail', await js(`getComputedStyle(document.querySelector('.rail')).flexDirection === 'column'`))
     check('no window buttons', (await js(`document.querySelectorAll('.window-controls button').length`)) === 0)
     await shot('01-live-disconnected')

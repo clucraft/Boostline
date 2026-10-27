@@ -20,6 +20,14 @@ export async function runLaunchTest(api: BoostlineApi): Promise<void> {
   const result: Record<string, unknown> = { started: new Date().toISOString(), autoconnect: opts.autoconnect }
   try {
     await wait(3000)
+    // Screen size in points and which layout is active (tab bar or rail), e.g. for iPhone Duo.
+    const rail = document.querySelector('.rail')
+    result.viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      pixelRatio: window.devicePixelRatio,
+      rail: rail ? getComputedStyle(rail).flexDirection : undefined
+    }
     // 1. Connect and capture (before importing BMW data, so the fake car's OBD values are logged).
     const [kind, target] = opts.autoconnect.split('@')
     const [host, port] = target ? target.split(':') : []

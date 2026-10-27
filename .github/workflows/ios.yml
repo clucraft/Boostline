@@ -1,10 +1,11 @@
 name: iOS
 
-# Builds the iOS app (unsigned, for the Simulator), then runs it in an iPhone Simulator
-# against the fake BMW gateway from the tests: the app connects over TCP through the native
-# plugin, streams, saves a log, and writes the outcome to Documents/smoke.json
-# (src/mobile/smoke.ts). Runs on pull requests that touch the app, or by hand (Actions → iOS →
-# Run workflow), so it doesn't use macOS minutes on every push to main.
+# Builds the iOS app (unsigned, for the Simulator) with Xcode 27.1, then runs it against the
+# fake BMW gateway from the tests: the app connects over TCP through the native plugin, streams,
+# saves a log, and writes the outcome to Documents/smoke.json (src/mobile/smoke.ts). The full
+# run, with the BMW data import, is on an iPhone Duo; a quick connect-and-capture run checks a
+# regular iPhone. Runs on pull requests that touch the app, or by hand (Actions → iOS → Run
+# workflow), so it doesn't use macOS minutes on every push to main.
 on:
   pull_request:
     paths:
@@ -22,7 +23,9 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    # Xcode 27 image (Apple Silicon): Xcode 27.1, whose iOS 27.1 SDK lets the app fill the iPhone
+    # Duo's inner screen, and the iPhone Duo simulator.
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,8 +35,11 @@ jobs:
       - run: npm ci
       - run: npm run mobile:build
       - run: npx cap sync ios
-      - name: Xcode version
-        run: xcodebuild -version
+      - name: Select Xcode 27.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app
+          xcodebuild -version
+          xcrun simctl list devices available | grep -E 'iPhone (Duo|18 Pro) ' || true
       - name: Build for the iOS Simulator (unsigned)
         run: |
           set -o pipefail
@@ -49,27 +55,43 @@ jobs:
           for i in $(seq 1 50); do [ -s build/gateway.port ] && break; sleep 0.2; done
           echo "Gateway on port $(cat build/gateway.port)"
 
-      - name: Run the app in an iPhone Simulator
+      - name: Run the app in the iPhone Duo and iPhone 18 Pro Simulators
         run: |
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c "import json, sys; d = json.load(sys.stdin)['devices']; print(next(x['udid'] for k, v in d.items() if 'iOS' in k for x in v if x['name'].startswith('iPhone')))")
-          echo "Simulator $DEVICE"
-          xcrun simctl boot "$DEVICE"
-          xcrun simctl bootstatus "$DEVICE" -b
-          xcrun simctl install "$DEVICE" build/ios/Build/Products/Debug-iphonesimulator/App.app
-          SIMCTL_CHILD_BOOSTLINE_AUTOCONNECT="mhd-wifi@127.0.0.1:$(cat build/gateway.port)" SIMCTL_CHILD_BOOSTLINE_CAPTURE_SECONDS=8 SIMCTL_CHILD_BOOSTLINE_IMPORT_BMW=1 \
-            xcrun simctl launch --console-pty "$DEVICE" app.boostline.logger > build/app-console.log 2>&1 &
-          DATA=$(xcrun simctl get_app_container "$DEVICE" app.boostline.logger data)
-          for i in $(seq 1 420); do [ -f "$DATA/Documents/smoke.json" ] && break; sleep 1; done
-          sleep 3
-          xcrun simctl io "$DEVICE" screenshot build/ios-simulator.png
-          cp "$DATA/Documents/smoke.json" build/ || true
-          ls -la "$DATA/Documents" "$DATA/Documents/Logs" || true
-          echo "--- smoke.json"; cat build/smoke.json || true
-          echo "--- BMW data import"; grep '\[bmw\]' build/app-console.log | tail -n 8 || true
-          echo "--- app console (first 120 lines)"; head -n 120 build/app-console.log || true
+          udid() {
+            xcrun simctl list devices available -j | python3 -c "import json, sys; d = json.load(sys.stdin)['devices']; print(next(x['udid'] for k, v in d.items() if 'iOS' in k for x in v if x['name'] == sys.argv[1]))" "$1"
+          }
+          # smoke <device name> <output name> [import]: launches the app, waits for smoke.json,
+          # keeps a screenshot, the result and the console log as build/<output name>-*.
+          smoke() {
+            local dev env
+            dev=$(udid "$1")
+            echo "::group::$1 ($dev)"
+            xcrun simctl boot "$dev"
+            xcrun simctl bootstatus "$dev" -b
+            xcrun simctl install "$dev" build/ios/Build/Products/Debug-iphonesimulator/App.app
+            env="SIMCTL_CHILD_BOOSTLINE_AUTOCONNECT=mhd-wifi@127.0.0.1:$(cat build/gateway.port) SIMCTL_CHILD_BOOSTLINE_CAPTURE_SECONDS=8"
+            [ "$3" = import ] && env="$env SIMCTL_CHILD_BOOSTLINE_IMPORT_BMW=1"
+            env $env xcrun simctl launch --console-pty "$dev" app.boostline.logger > "build/$2-console.log" 2>&1 &
+            local data
+            data=$(xcrun simctl get_app_container "$dev" app.boostline.logger data)
+            for i in $(seq 1 420); do [ -f "$data/Documents/smoke.json" ] && break; sleep 1; done
+            sleep 3
+            xcrun simctl io "$dev" screenshot "build/$2.png"
+            cp "$data/Documents/smoke.json" "build/$2-smoke.json" || true
+            echo "--- smoke.json"; cat "build/$2-smoke.json" || true
+            [ "$3" = import ] && { echo "--- BMW data import"; grep '\[bmw\]' "build/$2-console.log" | tail -n 8 || true; }
+            echo "--- app console (first 60 lines)"; head -n 60 "build/$2-console.log" || true
+            head -c 3000000 "build/$2-console.log" > "build/$2-console-head.log" || true
+            xcrun simctl terminate "$dev" app.boostline.logger || true
+            xcrun simctl shutdown "$dev" || true
+            echo "::endgroup::"
+            grep -q '"ok": true' "build/$2-smoke.json"
+          }
+          status=0
+          smoke "iPhone Duo" iphone-duo import || status=1
+          smoke "iPhone 18 Pro" iphone-18-pro || status=1
           echo "--- gateway"; tail -n 5 build/gateway.log || true
-          head -c 3000000 build/app-console.log > build/app-console-head.log || true
-          grep -q '"ok": true' build/smoke.json
+          exit $status
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -77,8 +99,8 @@ jobs:
           name: ios-build
           path: |
             build/xcodebuild.log
-            build/app-console-head.log
-            build/smoke.json
-            build/ios-simulator.png
+            build/*-console-head.log
+            build/*-smoke.json
+            build/iphone-*.png
             build/gateway.log
           if-no-files-found: ignore
