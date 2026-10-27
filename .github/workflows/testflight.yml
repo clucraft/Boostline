@@ -11,7 +11,9 @@ on:
 
 jobs:
   upload:
-    runs-on: macos-latest
+    # Xcode 27 image (Apple Silicon); built with Xcode 27.1 so the app fills the iPhone Duo's
+    # inner screen.
+    runs-on: xcode-27
     env:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
@@ -37,8 +39,10 @@ jobs:
           [ -n "$ASC_KEY_P8" ] || { echo "Missing repository secret ASC_KEY_P8"; exit 1; }
           printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
           grep -q 'BEGIN PRIVATE KEY' "$RUNNER_TEMP/AuthKey.p8" || { echo "ASC_KEY_P8 doesn't look like a .p8 key (BEGIN PRIVATE KEY line missing)"; exit 1; }
-      - name: Xcode version
-        run: xcodebuild -version
+      - name: Select Xcode 27.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app
+          xcodebuild -version
       - name: Archive
         run: |
           set -o pipefail
@@ -82,10 +86,13 @@ jobs:
       - name: Remove the key
         if: always()
         run: rm -f "$RUNNER_TEMP/AuthKey.p8"
+      # A full storage quota doesn't fail the upload job.
       - uses: actions/upload-artifact@v4
         if: always()
+        continue-on-error: true
         with:
           name: testflight-logs
+          retention-days: 14
           path: |
             ${{ runner.temp }}/archive.log
             ${{ runner.temp }}/export.log

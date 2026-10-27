@@ -6,3 +6,6 @@ release/
 *.tsbuildinfo
 dist-mobile/
 .claude/
+
+# Output of scripts/checks (screenshots, test data)
+.checks/
