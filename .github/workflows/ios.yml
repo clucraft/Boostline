@@ -93,10 +93,13 @@ jobs:
           echo "--- gateway"; tail -n 5 build/gateway.log || true
           exit $status
 
+      # Logs and screenshots for looking into a run; a full storage quota doesn't fail the check.
       - uses: actions/upload-artifact@v4
         if: always()
+        continue-on-error: true
         with:
           name: ios-build
+          retention-days: 14
           path: |
             build/xcodebuild.log
             build/*-console-head.log

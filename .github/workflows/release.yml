@@ -48,11 +48,13 @@ jobs:
           BOOSTLINE_SMOKE_TEST="$RUNNER_TEMP/smoke.json" "${{ matrix.app }}" || true
           cat "$RUNNER_TEMP/smoke.json"
           grep -q '"ok":true' "$RUNNER_TEMP/smoke.json"
+      # Only passes the installers to the publish job; the release keeps them.
       - uses: actions/upload-artifact@v4
         with:
           name: boostline-${{ runner.os }}
           path: ${{ matrix.artifacts }}
           if-no-files-found: error
+          retention-days: 1
 
   publish:
     needs: build

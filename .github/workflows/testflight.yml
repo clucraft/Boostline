@@ -86,10 +86,13 @@ jobs:
       - name: Remove the key
         if: always()
         run: rm -f "$RUNNER_TEMP/AuthKey.p8"
+      # A full storage quota doesn't fail the upload job.
       - uses: actions/upload-artifact@v4
         if: always()
+        continue-on-error: true
         with:
           name: testflight-logs
+          retention-days: 14
           path: |
             ${{ runner.temp }}/archive.log
             ${{ runner.temp }}/export.log
