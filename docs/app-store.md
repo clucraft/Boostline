@@ -87,11 +87,25 @@ Boostline is not affiliated with or endorsed by BMW AG, MHD or bootmod3.
 
 ## Screenshots
 
-Made with the simulator from the mobile web build at the exact device sizes (see the
-`appstore-shoot` script in the 0.6.0 work):
+Made with the simulator from the mobile web build at the exact device sizes
+(`scripts/checks/mobile-screens.cjs`, see docs/ios.md):
 
 - iPhone 6.9" (1320 × 2868): Live, live graphs, Dyno, Drag, Analyze.
+- iPhone Duo: four unfolded (2853 × 2007), then five folded (1398 × 2034).
 - iPad 13" (2752 × 2064, landscape): Live, Dyno, Drag, Analyze.
+
+## Header and search results
+
+Optional artwork on the version page's "Header and Search Results" tab, made from
+`scripts/store-art/` (instructions in `render.cjs`; output in `.checks/store-art/`):
+
+- Header (3840 × 1646): dyno curves under "Every pull, measured." Apple's safe area is the
+  centred 1646 × 661; the back and share buttons sit above it on iPhone.
+- Search results (3840 × 2560): "See what your engine is doing." with the Live and Dyno screens
+  on iPhones. Safe area x 836–3004, y 765–1795.
+
+Neither may show prices, URLs, a copyright symbol, other platforms' logos or awards the app
+hasn't won, and both must suit a 4+ rating.
 
 ## Review
 
