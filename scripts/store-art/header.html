@@ -1,0 +1,102 @@
+<!doctype html>
+<!-- App Store product page header, laid out at 1920×823 and captured at 2× (3840×1646).
+     Apple's safe area is the centred 1646×661 (823×330.5 here); open with ?safe to see it. -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Boostline header</title>
+<style>
+  @font-face { font-family: Inter; font-weight: 500; src: url(../../node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2); }
+  @font-face { font-family: Inter; font-weight: 800; src: url(../../node_modules/@fontsource/inter/files/inter-latin-800-normal.woff2); }
+  :root { --bg: #050505; --text: #ededee; --accent: #ffad33; --info: #38bdf8; --wheel: #fde4b4; }
+  html, body { margin: 0; width: 1920px; height: 823px; overflow: hidden; background: var(--bg); }
+  body { position: relative; font-family: Inter, sans-serif; }
+  .glow {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(42% 60% at 58% 78%, rgba(255, 157, 10, 0.16), transparent 70%),
+      radial-gradient(30% 45% at 34% 70%, rgba(56, 189, 248, 0.07), transparent 70%);
+  }
+  svg { position: absolute; inset: 0; }
+  .headline {
+    position: absolute; left: 0; right: 0; top: 248px; margin: 0; text-align: center;
+    font-weight: 800; font-size: 88px; line-height: 0.98; letter-spacing: -0.035em; color: var(--text);
+  }
+  .headline span { color: var(--accent); }
+  .safe { display: none; position: absolute; left: 548.5px; top: 246.5px; width: 823px; height: 330.5px; outline: 3px dashed #ff2bd6; }
+  .safe-on .safe { display: block; }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<svg id="chart" viewBox="0 0 1920 823" width="1920" height="823"></svg>
+<h1 class="headline">Every pull,<br><span>measured.</span></h1>
+<div class="safe"></div>
+<script>
+  if (location.search === '?safe') document.body.classList.add('safe-on')
+
+  // A turbocharged engine's road-dyno curves: torque in Nm, power in hp.
+  const torque = (rpm) => {
+    const spool = 0.42 + 0.58 / (1 + Math.exp(-(rpm - 1800) / 180))
+    const fade = rpm < 4200 ? 1 : 1 - Math.pow((rpm - 4200) / 2800, 1.6) * 0.26
+    return 612 * spool * fade
+  }
+  const power = (rpm) => (torque(rpm) * rpm) / 7121
+
+  const x = (rpm) => 960 + (rpm - 4650) * 0.325
+  const yPower = (hp) => 800 - (hp / 450) * 330
+  const yTorque = (nm) => 790 - ((nm - 200) / 412) * 290
+  const path = (fn) => {
+    const pts = []
+    for (let rpm = 1400; rpm <= 7900; rpm += 20) pts.push(`${x(rpm).toFixed(1)},${fn(rpm).toFixed(1)}`)
+    return 'M' + pts.join(' L')
+  }
+
+  const NS = 'http://www.w3.org/2000/svg'
+  const svg = document.getElementById('chart')
+  const el = (name, attrs, parent = svg) => {
+    const e = document.createElementNS(NS, name)
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v)
+    parent.appendChild(e)
+    return e
+  }
+
+  const defs = el('defs', {})
+  defs.innerHTML = `
+    <radialGradient id="fade" cx="50%" cy="62%" r="62%">
+      <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="0.75" stop-color="#fff" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="grid-mask"><rect width="1920" height="823" fill="url(#fade)"/></mask>
+    <filter id="glow" x="-10%" y="-30%" width="120%" height="160%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="under" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffad33" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#ffad33" stop-opacity="0"/>
+    </linearGradient>`
+
+  // Dyno-sheet grid: a line every 500 rpm and evenly spaced rows.
+  const grid = el('g', { mask: 'url(#grid-mask)', stroke: '#ffffff', 'stroke-opacity': '0.07', 'stroke-width': '1.5' })
+  for (let rpm = 1500; rpm <= 7900; rpm += 500) el('line', { x1: x(rpm), y1: 40, x2: x(rpm), y2: 823 }, grid)
+  for (let y = 100; y <= 823; y += 72) el('line', { x1: 0, y1: y, x2: 1920, y2: y }, grid)
+
+  // Soft fill under the power curve.
+  el('path', { d: path((r) => yPower(power(r))) + ` L${x(7900)},823 L${x(1400)},823 Z`, fill: 'url(#under)' })
+
+  const curves = el('g', { filter: 'url(#glow)', fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
+  el('path', { d: path((r) => yPower(power(r) * 0.85)), stroke: 'var(--wheel)', 'stroke-opacity': '0.75', 'stroke-width': '4', 'stroke-dasharray': '2 9' }, curves)
+  el('path', { d: path((r) => yTorque(torque(r))), stroke: 'var(--info)', 'stroke-width': '6' }, curves)
+  el('path', { d: path((r) => yPower(power(r))), stroke: 'var(--accent)', 'stroke-width': '7' }, curves)
+
+  // Marker on the power peak.
+  let peak = 1400
+  for (let rpm = 1400; rpm <= 7900; rpm += 10) if (power(rpm) > power(peak)) peak = rpm
+  const px = x(peak), py = yPower(power(peak))
+  el('circle', { cx: px, cy: py, r: 22, fill: 'none', stroke: 'var(--accent)', 'stroke-opacity': '0.35', 'stroke-width': '3' })
+  el('circle', { cx: px, cy: py, r: 10, fill: 'var(--accent)', filter: 'url(#glow)' })
+</script>
+</body>
+</html>
