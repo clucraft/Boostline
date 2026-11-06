@@ -12,7 +12,7 @@ side get the same two halves, with more room for the results.
 
 ## Status
 
-Version 0.6.0 is submitted to the App Store (iPhone and iPad; not offered in the EU for now).
+Version 0.6.0 is [on the App Store](https://apps.apple.com/app/boostline/id6821409701) (iPhone and iPad; not offered in the EU for now).
 Builds also go to TestFlight.
 
 Checked automatically on every pull request that touches the app (GitHub workflow **iOS**), in

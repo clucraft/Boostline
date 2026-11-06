@@ -59,7 +59,7 @@ Boostline connects to your car over an ENET cable or an MHD / bootmod3 WiFi adap
 
 ### iPhone and iPad
 
-The iOS app has the same screens and connects through the MHD and bootmod3 WiFi adapters. Version 0.6.0 is in App Store review (not offered in the EU for now). See [docs/ios.md](docs/ios.md).
+The iOS app has the same screens and connects through the MHD and bootmod3 WiFi adapters. Version 0.6.0 is [on the App Store](https://apps.apple.com/app/boostline/id6821409701) (not offered in the EU for now). See [docs/ios.md](docs/ios.md).
 
 ### Simulator
 
